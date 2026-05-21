@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>订单查看</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ===== 主题变量（参照 apps.html） ===== */
+    :root {
+      --bg-body: #f5f7fa;
+      --bg-card: #ffffff;
+      --bg-input: #ffffff;
+      --bg-hover: #f0f2f5;
+      --bg-thead: #f8f9fb;
+      --bg-detail-card: #f8f9fb;
+      --bg-btn-outline: #ffffff;
+      --bg-modal-close: #f0f2f5;
+      --text-primary: #2c3e50;
+      --text-secondary: #7f8c8d;
+      --text-muted: #95a5a6;
+      --text-label: #b0bec5;
+      --text-title: #2c3e50;
+      --text-table-head: #5a6c7d;
+      --text-table-cell: #5a6c7d;
+      --text-empty: #b0bec5;
+      --border-color: #e4e7ed;
+      --border-light: #dce1e8;
+      --border-thin: #eef1f5;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+      --shadow-sm: 0 2px 12px rgba(0,0,0,0.08);
+      --shadow-md: 0 6px 30px rgba(0,0,0,0.12);
+      --shadow-lg: 0 20px 60px rgba(0,0,0,0.2);
+      --shadow-img: 0 2px 12px rgba(0,0,0,0.08);
+      --overlay-bg: rgba(0,0,0,0.45);
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    [data-theme='dark'] {
+      --bg-body: #1a1a2e;
+      --bg-card: #16213e;
+      --bg-input: #1a2740;
+      --bg-hover: #1e2a45;
+      --bg-thead: #192240;
+      --bg-detail-card: #192240;
+      --bg-btn-outline: #16213e;
+      --bg-modal-close: #1e2a45;
+      --text-primary: #eaeaea;
+      --text-secondary: #b8b8b8;
+      --text-muted: #9898b0;
+      --text-label: #8888a8;
+      --text-title: #eaeaea;
+      --text-table-head: #d0d0e8;
+      --text-table-cell: #c8c8e0;
+      --text-empty: #8888a8;
+      --border-color: #2a2a4a;
+      --border-light: #3a3a5a;
+      --border-thin: #222244;
+      --shadow: 0 2px 12px rgba(0,0,0,0.3);
+      --shadow-sm: 0 2px 12px rgba(0,0,0,0.3);
+      --shadow-md: 0 6px 30px rgba(0,0,0,0.45);
+      --shadow-lg: 0 20px 60px rgba(0,0,0,0.6);
+      --shadow-img: 0 2px 12px rgba(0,0,0,0.35);
+      --overlay-bg: rgba(0,0,0,0.65);
+    }
+
+    /* 滚动条样式 - 浅色模式 */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 5px; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 5px; transition: background 0.3s; }
+    ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    /* 滚动条样式 - 深色模式 */
+    [data-theme='dark'] ::-webkit-scrollbar-track { background: #1a1a2e; }
+    [data-theme='dark'] ::-webkit-scrollbar-thumb { background: #3a3a5a; }
+    [data-theme='dark'] ::-webkit-scrollbar-thumb:hover { background: #4a4a6a; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    /* 头部 */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .header h1 { font-size: 22px; font-weight: 600; color: var(--text-title); }
+    .header-actions { display: flex; gap: 10px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 8px; border: none;
+      font-size: 14px; cursor: pointer; transition: all 0.25s;
+      font-weight: 500;
+    }
+    .btn-primary { background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+    .btn-outline {
+      background: var(--bg-btn-outline); color: var(--text-secondary); border: 1px solid var(--border-light);
+    }
+    .btn-outline:hover { border-color: #667eea; color: #667eea; }
+
+    /* 搜索区 */
+    .search-bar {
+      background: var(--bg-card); border-radius: 12px; padding: 16px 20px;
+      margin-bottom: 16px; box-shadow: var(--shadow-sm);
+      display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+    .search-item { display: flex; align-items: center; gap: 8px; min-width: 220px; }
+
+    /* 日期范围选择器样式 */
+    .date-range-picker { position: relative; display: inline-block; }
+    .date-range-input {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border: 1px solid var(--border-color);
+      border-radius: 6px; background: var(--bg-input); color: var(--text-primary);
+      font-size: 13px; min-width: 240px; cursor: pointer; transition: all 0.2s;
+    }
+    .date-range-input:hover { border-color: #667eea; }
+    .date-range-input.active { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.2); }
+    .date-range-input .date-text { flex: 1; color: var(--text-primary); }
+    .date-range-input .date-text.placeholder { color: var(--text-secondary); }
+    .date-range-input .calendar-icon { color: var(--text-secondary); }
+    .date-range-input .clear-icon {
+      color: var(--text-secondary); cursor: pointer; padding: 2px;
+      border-radius: 50%; transition: all 0.2s;
+    }
+    .date-range-input .clear-icon:hover { background: rgba(0,0,0,0.1); color: var(--text-primary); }
+    .date-range-dropdown {
+      position: absolute; top: calc(100% + 8px); left: 0; z-index: 100;
+      display: none; background: var(--bg-card); border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    .date-range-dropdown.show { display: flex; }
+    .date-shortcuts {
+      width: 120px; padding: 8px 0;
+      background: var(--bg-hover); border-right: 1px solid var(--border-color);
+    }
+    .date-shortcut-item {
+      padding: 8px 16px; cursor: pointer; font-size: 13px;
+      color: var(--text-primary); transition: all 0.2s;
+    }
+    .date-shortcut-item:hover { background: rgba(102,126,234,0.1); color: #667eea; }
+    .date-shortcut-item.active { background: rgba(102,126,234,0.15); color: #667eea; font-weight: 500; }
+    .date-picker-panel { padding: 12px; display: flex; gap: 16px; }
+    .date-picker-group { display: flex; flex-direction: column; gap: 6px; }
+    .date-picker-group label { font-size: 12px; color: var(--text-secondary); }
+    .date-picker-group input[type="date"] {
+      padding: 6px 10px; border: 1px solid var(--border-color);
+      border-radius: 4px; background: var(--bg-input); color: var(--text-primary);
+      font-size: 13px; width: 140px;
+    }
+    .date-picker-group input[type="date"]:focus { outline: none; border-color: #667eea; }
+    .date-picker-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px; border-top: 1px solid var(--border-color); }
+    .date-picker-actions button { padding: 6px 12px; border-radius: 4px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+    .date-picker-actions .btn-cancel { border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); }
+    .date-picker-actions .btn-cancel:hover { border-color: #667eea; color: #667eea; }
+    .date-picker-actions .btn-confirm { border: none; background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; }
+    .date-picker-actions .btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(102,126,234,0.3); }
+    .search-item label { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+    .search-input-wrap {
+      position: relative; flex: 1; display: flex; align-items: center;
+    }
+    .search-input {
+      width: 100%; padding: 8px 14px; border: 1px solid var(--border-color);
+      border-radius: 6px; font-size: 13px; outline: none; transition: border-color 0.2s;
+      background: var(--bg-input); color: var(--text-primary);
+      padding-right: 30px;
+    }
+    /* 复合搜索框 */
+    .compound-search { display: flex; align-items: stretch; flex: 1; }
+    .compound-search-select {
+      padding: 8px 10px; border: 1px solid var(--border-color); border-right: none;
+      border-radius: 6px 0 0 6px; font-size: 13px; outline: none;
+      background: var(--bg-hover); color: var(--text-secondary); cursor: pointer;
+      white-space: nowrap; appearance: auto;
+    }
+    .compound-search-select:focus { border-color: #667eea; }
+    .compound-search-input-wrap { position: relative; flex: 1; display: flex; align-items: center; }
+    .compound-search-input {
+      width: 100%; padding: 8px 14px; border: 1px solid var(--border-color);
+      border-radius: 0 6px 6px 0; font-size: 13px; outline: none; transition: border-color 0.2s;
+      background: var(--bg-input); color: var(--text-primary);
+      padding-right: 30px;
+    }
+    .compound-search-input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+    .compound-search-clear {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      width: 20px; height: 20px; border: none; border-radius: 50%;
+      background: transparent; color: var(--text-muted); font-size: 14px;
+      cursor: pointer; display: none; align-items: center; justify-content: center;
+      line-height: 1; transition: color 0.15s, background 0.15s;
+    }
+    .compound-search-clear:hover { color: #e74c3c; background: var(--bg-hover); }
+    .compound-search-input:not(:placeholder-shown) ~ .compound-search-clear { display: flex; }
+    .search-input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+    .search-clear {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      width: 20px; height: 20px; border: none; border-radius: 50%;
+      background: transparent; color: var(--text-muted); font-size: 14px;
+      cursor: pointer; display: none; align-items: center; justify-content: center;
+      line-height: 1; transition: color 0.15s, background 0.15s;
+    }
+    .search-clear:hover { color: #e74c3c; background: var(--bg-hover); }
+    .search-input:not(:placeholder-shown) ~ .search-clear { display: flex; }
+    .search-actions { margin-left: auto; }
+
+    /* 表格工具栏 */
+    .toolbar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; padding: 0 4px;
+    }
+    .toolbar-left { font-size: 13px; color: var(--text-muted); }
+    .toolbar-left strong { color: var(--text-primary); }
+    .column-settings { position: relative; }
+
+    .col-btn {
+      padding: 7px 14px; border: 1px solid var(--border-light); border-radius: 6px;
+      background: var(--bg-btn-outline); cursor: pointer; font-size: 13px; color: var(--text-secondary);
+      display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .col-btn:hover { border-color: #667eea; color: #667eea; }
+    .col-dropdown {
+      position: absolute; top: calc(100% + 6px); right: 0; z-index: 100;
+      background: var(--bg-card); border-radius: 10px; box-shadow: var(--shadow-md);
+      padding: 10px 0; min-width: 180px; display: none;
+      transition: background 0.3s ease;
+    }
+    .col-dropdown.show { display: block; }
+    .col-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 18px; cursor: pointer; font-size: 13px; transition: background 0.15s;
+      color: var(--text-secondary);
+    }
+    .col-option:hover { background: var(--bg-hover); }
+    .col-option input[type='checkbox'] {
+      width: 16px; height: 16px; accent-color: #667eea; cursor: pointer;
+    }
+    .col-divider { height: 1px; background: var(--border-thin); margin: 6px 0; }
+
+    /* 表格 */
+    .table-wrapper {
+      background: var(--bg-card); border-radius: 12px; overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+    .table-scroll { overflow-x: auto; }
+    table { min-width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--bg-thead); padding: 13px 16px; text-align: left;
+      font-size: 13px; font-weight: 600; color: var(--text-table-head);
+      border-bottom: 2px solid var(--border-thin); white-space: nowrap;
+    }
+    tbody td {
+      padding: 12px 16px; font-size: 13px; color: var(--text-table-cell);
+      border-bottom: 1px solid var(--border-thin); max-width: 300px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      line-height: 20px;
+    }
+    /* description / solution 列：纯文本显示，固定行高 */
+    tbody td.cell-plain {
+      white-space: nowrap;
+      line-height: 20px;
+      max-height: 20px;
+    }
+    tbody tr { cursor: pointer; transition: background 0.15s; }
+    tbody tr:hover { background: var(--bg-hover); }
+    .empty-state {
+      padding: 80px 20px; text-align: center; color: var(--text-empty); font-size: 14px;
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.3; }
+
+    /* 分页 */
+    .pagination {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; border-top: 1px solid var(--border-thin);
+    }
+    .page-info { font-size: 13px; color: var(--text-muted); }
+    .page-controls { display: flex; align-items: center; gap: 12px; }
+    .page-size-select {
+      padding: 6px 10px; border: 1px solid var(--border-light); border-radius: 6px;
+      font-size: 13px; outline: none; cursor: pointer; color: var(--text-secondary);
+      background: var(--bg-input);
+    }
+    .page-btns { display: flex; gap: 4px; }
+    .page-btn {
+      padding: 6px 14px; border: 1px solid var(--border-light); border-radius: 6px;
+      background: var(--bg-btn-outline); cursor: pointer; font-size: 13px; color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .page-btn:hover:not(:disabled) { border-color: #667eea; color: #667eea; }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-btn.active {
+      background: linear-gradient(135deg,#667eea,#764ba2); color: #fff;
+      border-color: transparent;
+    }
+
+    /* 弹窗遮罩 */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--overlay-bg); z-index: 999;
+      display: none; justify-content: center; align-items: center;
+      backdrop-filter: blur(4px); animation: fadeIn 0.2s ease;
+    }
+    .modal-overlay.show { display: flex; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+    .modal {
+      background: var(--bg-card); border-radius: 16px; width: 85vw; height: 85vh;
+      overflow: hidden; display: flex; flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+      transition: background 0.3s ease;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 28px; border-bottom: 1px solid var(--border-thin);
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 600; color: var(--text-title); }
+    .modal-close {
+      width: 36px; height: 36px; border: none; border-radius: 50%;
+      background: var(--bg-modal-close); cursor: pointer; font-size: 20px; color: var(--text-muted);
+      display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .modal-close:hover { background: var(--bg-hover); color: #e74c3c; }
+
+    .modal-body {
+      padding: 28px; overflow-y: auto; flex: 1;
+    }
+    .detail-layout {
+      display: grid; grid-template-columns: 320px 1fr; gap: 32px;
+    }
+    .detail-left, .detail-right { display: flex; flex-direction: column; gap: 20px; }
+
+    .detail-card {
+      background: var(--bg-detail-card); border-radius: 12px; padding: 20px;
+      border: 1px solid var(--border-thin);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    .detail-card h4 {
+      font-size: 13px; color: var(--text-label); text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 14px; font-weight: 600;
+    }
+    .detail-field { margin-bottom: 16px; }
+    .detail-field:last-child { margin-bottom: 0; }
+    .detail-label {
+      font-size: 12px; color: var(--text-label); margin-bottom: 6px; font-weight: 500;
+    }
+    .detail-value {
+      font-size: 14px; color: var(--text-primary); line-height: 1.6; word-break: break-word; overflow-wrap: break-word;
+    }
+
+    /* 富文本内容样式 */
+    .detail-value.rich-text {
+      line-height: 1.8;
+    }
+    .rich-text p { margin: 0 0 8px 0; }
+    .rich-text p:last-child { margin-bottom: 0; }
+    .rich-text h1, .rich-text h2, .rich-text h3,
+    .rich-text h4, .rich-text h5, .rich-text h6 {
+      margin: 12px 0 8px 0; font-weight: 600;
+      color: var(--text-primary);
+    }
+    .rich-text h1 { font-size: 20px; }
+    .rich-text h2 { font-size: 18px; }
+    .rich-text h3 { font-size: 16px; }
+    .rich-text ul, .rich-text ol {
+      margin: 8px 0; padding-left: 24px;
+    }
+    .rich-text li { margin-bottom: 4px; }
+    .rich-text blockquote {
+      border-left: 4px solid #667eea; padding: 8px 16px;
+      margin: 8px 0; background: var(--bg-hover);
+      border-radius: 0 6px 6px 0;
+      color: var(--text-secondary);
+    }
+    .rich-text pre {
+      background: var(--bg-input); border-radius: 8px;
+      padding: 14px 18px; overflow-x: auto; margin: 10px 0;
+      border: 1px solid var(--border-thin);
+    }
+    .rich-text code {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px; background: var(--bg-hover);
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .rich-text pre code {
+      background: none; padding: 0; border-radius: 0;
+    }
+    .rich-text table {
+      width: 100%; border-collapse: collapse; margin: 10px 0;
+      font-size: 13px;
+    }
+    .rich-text th, .rich-text td {
+      border: 1px solid var(--border-light); padding: 8px 12px;
+      text-align: left;
+    }
+    .rich-text th { background: var(--bg-hover); font-weight: 600; }
+    .rich-text hr {
+      border: none; border-top: 1px solid var(--border-thin);
+      margin: 12px 0;
+    }
+    .rich-text a {
+      color: #667eea; text-decoration: none;
+    }
+    .rich-text a:hover {
+      text-decoration: underline;
+    }
+    /* 图片点击放大 */
+    .rich-text img {
+      max-width: 100%; max-height: 300px; border-radius: 8px;
+      margin-top: 8px; object-fit: contain; cursor: pointer;
+      box-shadow: var(--shadow-img); transition: transform 0.2s;
+    }
+    .rich-text img:hover { transform: scale(1.02); }
+
+    /* 图片预览弹窗 */
+    #imgPreviewOverlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75); z-index: 2000;
+      display: none; justify-content: center; align-items: center;
+      backdrop-filter: blur(8px);
+    }
+    #imgPreviewOverlay.show { display: flex; }
+    #imgPreviewImg {
+      max-width: 90vw; max-height: 90vh; border-radius: 8px;
+      object-fit: contain; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    /* 拖拽区域 */
+    #dropZone {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(102,126,234,0.08); z-index: 998;
+      display: none; justify-content: center; align-items: center;
+      border: 3px dashed #667eea; pointer-events: none;
+    }
+    #dropZone.show { display: flex; }
+    .drop-hint {
+      background: var(--bg-card); padding: 40px 60px; border-radius: 16px;
+      font-size: 18px; color: #667eea; font-weight: 500;
+      box-shadow: 0 10px 40px rgba(102,126,234,0.15);
+    }
+    #fileInput { display: none; }
+
+    /* 响应式 */
+    @media (max-width: 900px) {
+      .modal { width: 95vw; height: 90vh; }
+      .detail-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 头部 -->
+  <div class="header">
+    <h1>订单查看</h1>
+    <div class="header-actions">
+      <button class="btn btn-outline" onclick="toggleTheme()" title="切换主题">
+        <span id="themeIcon">🌙</span>
+        <span id="themeText">深色模式</span>
+      </button>
+      <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">
+        📂 导入JSON
+      </button>
+      <input type="file" id="fileInput" accept=".json,application/json" onchange="handleFileSelect(event)">
+    </div>
+  </div>
+
+  <!-- 搜索栏 -->
+  <div class="search-bar" id="searchBar" style="display:none;">
+    <div class="search-item">
+      <label>订单号</label>
+      <div class="search-input-wrap">
+        <input type="text" class="search-input" id="searchOrder" placeholder="搜索 ticketId / incidentId" oninput="doSearch()">
+        <button class="search-clear" onclick="clearSearchField('searchOrder')" title="清除">×</button>
+      </div>
+    </div>
+    <div class="search-item">
+      <div class="compound-search">
+        <select class="compound-search-select" id="titleSearchType" onchange="onTitleSearchTypeChange()">
+        </select>
+        <div class="compound-search-input-wrap">
+          <input type="text" class="compound-search-input" id="titleSearchInput" placeholder="模糊匹配 标题" oninput="doSearch()">
+          <button class="compound-search-clear" onclick="clearTitleSearch()" title="清除">×</button>
+        </div>
+      </div>
+    </div>
+    <div class="search-item">
+      <div class="compound-search">
+        <select class="compound-search-select" id="compoundSearchType" onchange="onCompoundSearchTypeChange()">
+          <option value="description">描述</option>
+          <option value="solution">解决方案</option>
+        </select>
+        <div class="compound-search-input-wrap">
+          <input type="text" class="compound-search-input" id="compoundSearchInput" placeholder="模糊匹配 description" oninput="doSearch()">
+          <button class="compound-search-clear" onclick="clearCompoundSearch()" title="清除">×</button>
+        </div>
+      </div>
+    </div>
+    <div class="search-item">
+      <label>开单时间</label>
+      <div class="date-range-picker" id="openTimeDateRangePicker">
+        <div class="date-range-input" onclick="toggleDatePicker()">
+          <span class="calendar-icon">📅</span>
+          <span class="date-text placeholder" id="openTimeDateText">选择日期范围</span>
+          <span class="clear-icon" onclick="event.stopPropagation(); clearDateRange()" style="display:none;" id="openTimeClearIcon">✕</span>
+        </div>
+        <div class="date-range-dropdown" id="openTimeDateDropdown">
+          <div class="date-shortcuts">
+            <div class="date-shortcut-item" data-days="1" onclick="selectDateShortcut(1)">今天</div>
+            <div class="date-shortcut-item" data-days="7" onclick="selectDateShortcut(7)">最近7天</div>
+            <div class="date-shortcut-item" data-days="30" onclick="selectDateShortcut(30)">最近30天</div>
+            <div class="date-shortcut-item" data-days="90" onclick="selectDateShortcut(90)">最近90天</div>
+            <div class="date-shortcut-item" data-days="" onclick="selectDateShortcut('')">自定义</div>
+          </div>
+          <div>
+            <div class="date-picker-panel">
+              <div class="date-picker-group">
+                <label>开始日期</label>
+                <input type="date" id="openTimeDateStart" onchange="onDateInputChange()">
+              </div>
+              <div class="date-picker-group">
+                <label>结束日期</label>
+                <input type="date" id="openTimeDateEnd" onchange="onDateInputChange()">
+              </div>
+            </div>
+            <div class="date-picker-actions">
+              <button class="btn-cancel" onclick="cancelDatePicker()">取消</button>
+              <button class="btn-confirm" onclick="confirmDatePicker()">确定</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="search-actions">
+      <button class="btn btn-outline" onclick="clearSearch()">重置</button>
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <div class="toolbar-left">共 <strong id="totalCount">0</strong> 条记录</div>
+    <div class="column-settings">
+      <button class="col-btn" onclick="toggleColDropdown()">
+        ⚙️ 列设置
+        <span style="font-size:11px;">▼</span>
+      </button>
+      <div class="col-dropdown" id="colDropdown"></div>
+    </div>
+  </div>
+
+  <!-- 表格 -->
+  <div class="table-wrapper" id="tableWrap" style="display:none;">
+    <div class="table-scroll">
+      <table>
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <div class="page-info">第 <span id="curPageDisplay">1</span> 页，共 <span id="totalPageDisplay">0</span> 页</div>
+      <div class="page-controls">
+        每页
+        <select class="page-size-select" id="pageSizeSel" onchange="changePageSize()">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        条
+        <div class="page-btns" id="pageBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 空状态 -->
+  <div class="table-wrapper" id="emptyState" style="display:block;">
+    <div class="empty-state">
+      <div class="icon">📋</div>
+      <p>请导入 JSON 文件以查看订单数据</p>
+      <p style="margin-top:8px;font-size:12px;color:#ccc;">支持点击按钮选择文件或拖拽上传</p>
+    </div>
+  </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-header">
+      <h3>📋 订单详情</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-layout" id="detailContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 图片预览弹窗 -->
+<div class="modal-overlay" id="imgPreviewOverlay" onclick="closeImgPreview()">
+  <img src="" alt="" id="imgPreviewImg">
+</div>
+
+<!-- 拖拽提示 -->
+<div id="dropZone"><div class="drop-hint">📁 释放鼠标以上传 JSON 文件</div></div>
+
+<script>
+/* ================================================================
+   配置区：表头字段定义（数组格式，可自定义字段及顺序）
+   ================================================================ */
+const COLUMN_CONFIG = [
+  { key: 'ticketId', name: '工单编号', rich: false, visable: true },
+  { key: 'statusId', name: '状态', rich: false, visable: true },
+  { key: 'levelId', name: '优先级', rich: false, visable: true },
+  { key: 'category', name: '分类', rich: false, visable: true },
+  { key: 'title', name: '标题', rich: false, visable: true },
+  { key: 'labels', name: '标签', rich: false, visable: true },
+  { key: 'description', name: '描述', rich: true, visable: true },
+  { key: 'solution', name: '解决方案', rich: true, visable: true },
+  { key: 'supportName', name: '支持人员', rich: false, visable: true },
+  { key: 'openTime', name: '开单时间', rich: false, visable: true },
+  { key: 'closeTime', name: '关闭时间', rich: false, visable: true },
+  { key: 'incidentId', name: '事件编号', rich: false, visable: true }
+];
+
+/* 标题复合搜索排除字段（这些字段已有独立搜索条件） */
+const TITLE_SEARCH_EXCLUDED_KEYS = new Set(['ticketId', 'incidentId', 'description', 'solution', 'openTime', "closeTime"]);
+
+/* Cookie 配置项（用于解决富文本图片访问权限问题）
+   本配置同时作用于：
+   1. proxy.js 代理服务 — 在后端请求时附加 Cookie 请求头（主要生效方式）
+   2. 前端 document.cookie 写入 — 作为备用（跨域时无效）
+
+   格式：{ "cookie": "key1=value1; key2=value2" }
+   cookie 字段的值会直接作为 Cookie 请求头发送
+
+   注意：修改此配置后，需同步修改 proxy.js 中的 COOKIE_CONFIG，并重启代理服务
+
+   示例：
+   const COOKIE_CONFIG = [
+     { cookie: "token=abc123; session_id=xyz789" },
+   ];
+*/
+const COOKIE_CONFIG = [
+  {
+    "cookie": "token=abc1231233333"
+  }
+];
+
+/* 代理服务配置（用于解决跨域和 Cookie 无法前端设置的问题）
+   启动方式: 在 orderview 目录下运行 node proxy.js
+   访问页面: http://localhost:8128/orderview.html
+   代理原理: 浏览器请求本地代理 → 代理在后端附加 Cookie 请求头 → 转发请求到目标服务器 → 返回图片
+   若代理服务未启动，图片将尝试直接访问（可能因无权限而加载失败）
+   设为 '' 则不使用代理
+*/
+const PROXY_BASE = 'http://localhost:8128';
+
+/* 将外部图片 URL 转为代理 URL */
+function proxyUrl(url) {
+  if (!PROXY_BASE || !url || typeof url !== 'string') return url;
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+  if (url.startsWith(PROXY_BASE)) return url;
+  if (!/^https?:\/\//i.test(url)) return url;
+  return PROXY_BASE + '/?url=' + encodeURIComponent(url);
+}
+
+/* 解码 HTML 实体（将 &amp; → &, &lt; → < 等），确保 URL 参数正确传递 */
+function decodeHTMLEntities(str) {
+  if (!str) return str;
+  var txt = document.createElement('textarea');
+  txt.innerHTML = str;
+  return txt.value;
+}
+
+/* 将 HTML 中所有 <img src="..."> 的外部 URL 替换为代理 URL，并保留原始 URL 用于回退 */
+function proxyImgSrcs(html) {
+  if (!PROXY_BASE) return html;
+  return html.replace(/(<img\b[^>]*?\bsrc=)(["'])([^"']+)\2/gi, function(match, prefix, quote, src) {
+    // 先将 HTML 实体解码（如 &amp; → &），确保 URL 参数正确传递给代理
+    var decodedSrc = decodeHTMLEntities(src);
+    var proxied = proxyUrl(decodedSrc);
+    if (proxied === decodedSrc) return match;
+    return prefix + quote + proxied + quote + ' data-original-src="' + decodedSrc.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"';
+  });
+}
+
+/* 全局图片加载失败回退：代理失败时自动尝试原始 URL */
+document.addEventListener('error', function(e) {
+  var img = e.target;
+  if (img && img.tagName === 'IMG' && img.dataset.originalSrc && !img.dataset.fallback) {
+    img.dataset.fallback = '1';
+    img.src = img.dataset.originalSrc;
+  }
+}, true);
+
+/* ================================================================
+   状态管理
+   ================================================================ */
+let rawData = [];          // 原始数据
+let filteredData = [];     // 过滤后数据
+let visibleColumns = [];   // 当前显示的列
+let currentPage = 1;       // 当前页码
+let pageSize = 20;         // 每页条数
+
+/* ================================================================
+   主题切换（默认深色模式）
+   ================================================================ */
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+
+  if(isDark) {
+    html.removeAttribute('data-theme');
+    document.getElementById('themeIcon').textContent = '🌙';
+    document.getElementById('themeText').textContent = '深色模式';
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    document.getElementById('themeIcon').textContent = '☀️';
+    document.getElementById('themeText').textContent = '浅色模式';
+  }
+
+  try { localStorage.setItem('orderview-theme', isDark ? 'light' : 'dark'); } catch(e){}
+}
+
+(function initTheme() {
+  let isDark = true; // 默认深色
+  try {
+    const saved = localStorage.getItem('orderview-theme');
+    if(saved) isDark = saved === 'dark';
+  } catch(e){}
+  const html = document.documentElement;
+  if(isDark) {
+    html.setAttribute('data-theme', 'dark');
+    document.getElementById('themeIcon').textContent = '☀️';
+    document.getElementById('themeText').textContent = '浅色模式';
+  } else {
+    html.removeAttribute('data-theme');
+    document.getElementById('themeIcon').textContent = '🌙';
+    document.getElementById('themeText').textContent = '深色模式';
+  }
+})();
+
+/* ================================================================
+   Cookie 配置写入
+   ================================================================ */
+function applyCookieConfig() {
+  if(!Array.isArray(COOKIE_CONFIG) || COOKIE_CONFIG.length === 0) return;
+  COOKIE_CONFIG.forEach(item => {
+    if(!item.cookie) return;
+    document.cookie = item.cookie + '; path=/';
+  });
+}
+
+/* ================================================================
+   初始化
+   ================================================================ */
+(function init() {
+  // 写入 Cookie 配置，确保富文本图片可正常访问
+  applyCookieConfig();
+
+  // 根据 visable 字段决定默认可见列
+  visibleColumns = COLUMN_CONFIG.filter(c => c.visable !== false).map(c => c.key);
+
+  // 绑定拖拽事件
+  document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropZone').classList.add('show'); });
+  document.addEventListener('dragleave', e => { if(e.relatedTarget === null) document.getElementById('dropZone').classList.remove('show'); });
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('show');
+    const file = e.dataTransfer.files[0];
+    if(file && (file.name.endsWith('.json') || file.type === 'application/json')) loadFile(file);
+  });
+
+  renderColumnDropdown();
+})();
+
+/* ================================================================
+   文件处理
+   ================================================================ */
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if(file) loadFile(file);
+}
+
+/* 修复 https://undefined 开头的链接 */
+function fixUndefinedUrls(obj) {
+  if(!obj || typeof obj !== 'object') return obj;
+  if(Array.isArray(obj)) return obj.map(fixUndefinedUrls);
+  const result = {};
+  for(const key in obj) {
+    const val = obj[key];
+    if(typeof val === 'string') {
+      result[key] = val.replace(/https:\/\/undefined\/weware\/onlineservice\/service\/services\/ihelp\/serviceRequest\/documents\/fileDownload\?([^#\s]*)/gi,
+        function(_match, queryString) {
+          // 提取第一个非 undefined 的 hostname
+          var hostMatch = queryString.match(/hostname=([^&]+)/g);
+          var host = 'undefined';
+          if(hostMatch) {
+            for(var i = 0; i < hostMatch.length; i++) {
+              var h = hostMatch[i].replace('hostname=', '');
+              if(h && h !== 'undefined') { host = h; break; }
+            }
+          }
+          // 提取 docId
+          var docIdMatch = queryString.match(/(?:^|&)docId=([^&]+)/);
+          var docId = docIdMatch ? docIdMatch[1] : '';
+          return 'https://' + host + '/weware/uniticket/service/basic/users/1/edm/documents/' + docId + '?' + queryString;
+        }
+      );
+    } else if(typeof val === 'object' && val !== null) {
+      result[key] = fixUndefinedUrls(val);
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let data = JSON.parse(e.target.result);
+      if(!Array.isArray(data)) data = [data];
+      data = fixUndefinedUrls(data);
+      rawData = data;
+      filteredData = [...data];
+      currentPage = 1;
+
+      // 显示UI组件
+      document.getElementById('searchBar').style.display = 'flex';
+      document.getElementById('toolbar').style.display = 'flex';
+      document.getElementById('tableWrap').style.display = 'block';
+      document.getElementById('emptyState').style.display = 'none';
+
+      renderTable();
+    } catch(err) {
+      alert('JSON 解析失败，请检查文件格式！\n' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ================================================================
+   搜索
+   ================================================================ */
+function doSearch() {
+  const kwOrder = document.getElementById('searchOrder').value.trim().toLowerCase();
+  const titleSearchType = document.getElementById('titleSearchType').value;
+  const titleKw = document.getElementById('titleSearchInput').value.trim().toLowerCase();
+  const compoundType = document.getElementById('compoundSearchType').value;
+  const compoundKw = document.getElementById('compoundSearchInput').value.trim().toLowerCase();
+  const dateStart = document.getElementById('openTimeDateStart').value;
+  const dateEnd = document.getElementById('openTimeDateEnd').value;
+
+  filteredData = rawData.filter(row => {
+    const ticketId = String(row.ticketId || '').toLowerCase();
+    const incidentId = String(row.incidentId || '').toLowerCase();
+    const desc = String(row.description || '').toLowerCase();
+    const sol  = String(row.solution || '').toLowerCase();
+
+    const orderMatch = !kwOrder || ticketId.includes(kwOrder) || incidentId.includes(kwOrder);
+
+    // 标题复合搜索：对选中的字段执行模糊查询
+    let titleMatch = true;
+    if (titleKw && titleSearchType) {
+      const fieldVal = String(row[titleSearchType] || '').toLowerCase();
+      titleMatch = fieldVal.includes(titleKw);
+    }
+
+    const compoundMatch = !compoundKw
+      || (compoundType === 'description' ? desc : sol).includes(compoundKw);
+
+    // 开单时间日期范围筛选
+    let dateMatch = true;
+    if (dateStart || dateEnd) {
+      const openTime = row.openTime ? parseDateStr(String(row.openTime)) : null;
+      if (!openTime) {
+        dateMatch = false;
+      } else {
+        if (dateStart) {
+          const start = new Date(dateStart);
+          start.setHours(0,0,0,0);
+          if (openTime < start) dateMatch = false;
+        }
+        if (dateEnd) {
+          const end = new Date(dateEnd);
+          end.setHours(23,59,59,999);
+          if (openTime > end) dateMatch = false;
+        }
+      }
+    }
+
+    return orderMatch && titleMatch && compoundMatch && dateMatch;
+  });
+
+  currentPage = 1;
+  renderTable();
+}
+
+function onCompoundSearchTypeChange() {
+  const type = document.getElementById('compoundSearchType').value;
+  const input = document.getElementById('compoundSearchInput');
+  input.placeholder = type === 'description' ? '模糊匹配 description' : '模糊匹配 solution';
+  if (input.value.trim()) doSearch();
+}
+
+/* 动态渲染标题复合搜索下拉选项（基于列设置中已勾选的字段） */
+function renderTitleSearchOptions() {
+  const select = document.getElementById('titleSearchType');
+  const prevValue = select.value;
+  const eligibleCols = COLUMN_CONFIG.filter(c => !TITLE_SEARCH_EXCLUDED_KEYS.has(c.key) && visibleColumns.includes(c.key));
+  select.innerHTML = eligibleCols.map(col => `<option value="${col.key}">${col.name || col.key}</option>`).join('');
+  // 尝试保留之前选中的字段
+  if (prevValue && eligibleCols.some(c => c.key === prevValue)) {
+    select.value = prevValue;
+  }
+  // 更新 placeholder
+  onTitleSearchTypeChange(true);
+}
+
+function onTitleSearchTypeChange(skipSearch) {
+  const select = document.getElementById('titleSearchType');
+  const input = document.getElementById('titleSearchInput');
+  const selectedKey = select.value;
+  const col = COLUMN_CONFIG.find(c => c.key === selectedKey);
+  input.placeholder = col ? `模糊匹配 ${col.name}` : '模糊匹配';
+  if (!skipSearch && input.value.trim()) doSearch();
+}
+
+function clearTitleSearch() {
+  document.getElementById('titleSearchInput').value = '';
+  doSearch();
+}
+
+function clearSearch() {
+  document.getElementById('searchOrder').value = '';
+  const titleSelect = document.getElementById('titleSearchType');
+  titleSelect.selectedIndex = 0;
+  document.getElementById('titleSearchInput').value = '';
+  document.getElementById('compoundSearchType').value = 'description';
+  document.getElementById('compoundSearchInput').value = '';
+  document.getElementById('compoundSearchInput').placeholder = '模糊匹配 description';
+  onTitleSearchTypeChange(true);
+  clearDateRange();
+  filteredData = [...rawData];
+  currentPage = 1;
+  renderTable();
+}
+
+function clearCompoundSearch() {
+  document.getElementById('compoundSearchInput').value = '';
+  doSearch();
+}
+
+function clearSearchField(id) {
+  document.getElementById(id).value = '';
+  doSearch();
+}
+
+/* ================================================================
+   列设置
+   ================================================================ */
+function renderColumnDropdown() {
+  const container = document.getElementById('colDropdown');
+  container.innerHTML = COLUMN_CONFIG.map(col => `
+    <label class="col-option">
+      <input type="checkbox"
+             ${visibleColumns.includes(col.key) ? 'checked' : ''}
+             onchange="toggleColumn('${col.key}', this)">
+      <span>${col.key}</span>
+    </label>
+  `).join('');
+  renderTitleSearchOptions();
+}
+
+function toggleColDropdown() {
+  document.getElementById('colDropdown').classList.toggle('show');
+}
+
+// 点击外部关闭下拉菜单
+document.addEventListener('click', function(e) {
+  if(!e.target.closest('.column-settings')) {
+    document.getElementById('colDropdown').classList.remove('show');
+  }
+});
+
+function toggleColumn(key, checkbox) {
+  const col = COLUMN_CONFIG.find(c => c.key === key);
+  if(visibleColumns.includes(key)) {
+    if(visibleColumns.length <= 1) { alert('至少保留一列'); if(checkbox) checkbox.checked = true; return; }
+    visibleColumns = visibleColumns.filter(k => k !== key);
+    if(col) col.visable = false;
+  } else {
+    visibleColumns.push(key);
+    if(col) col.visable = true;
+  }
+  renderTitleSearchOptions();
+  renderTable();
+}
+
+/* ================================================================
+   表格渲染
+   ================================================================ */
+function renderTable() {
+  // 表头
+  const thead = document.getElementById('tableHead');
+  thead.innerHTML = '<tr>' + COLUMN_CONFIG
+    .filter(col => visibleColumns.includes(col.key))
+    .map(col => `<th>${col.key}</th>`).join('') + '</tr>';
+
+  // 分页计算
+  const total = filteredData.length;
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+  currentPage = Math.min(currentPage, totalPages);
+  const start = (currentPage - 1) * pageSize;
+  const pageData = filteredData.slice(start, start + pageSize);
+
+  // 表体
+  const tbody = document.getElementById('tableBody');
+  // 从 COLUMN_CONFIG 派生需要纯文本显示的列
+  const plainKeys = new Set(COLUMN_CONFIG.filter(c => c.rich).map(c => c.key));
+  if(pageData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${visibleColumns.length}" style="text-align:center;padding:48px;color:var(--text-empty);">暂无匹配数据</td></tr>`;
+  } else {
+    tbody.innerHTML = pageData.map((row, idx) =>
+      '<tr onclick="showDetail(' + (start+idx) + ')">' +
+      COLUMN_CONFIG.filter(col => visibleColumns.includes(col.key))
+        .map(col => {
+          const key = col.key;
+          const cellClass = plainKeys.has(key) ? ' class="cell-plain"' : '';
+          const rawVal = String(row[key] ?? '');
+          // 纯文本列：去除 HTML 标签，只保留文本内容
+          const displayVal = plainKeys.has(key) ? stripHtml(truncateStr(rawVal, 80)) : escapeHtml(truncateStr(rawVal, 80));
+          return `<td title="${escapeHtml(rawVal)}"${cellClass}>${displayVal}</td>`;
+        })
+        .join('') +
+      '</tr>'
+    ).join('');
+  }
+
+  // 更新统计
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('curPageDisplay').textContent = currentPage;
+  document.getElementById('totalPageDisplay').textContent = totalPages;
+
+  // 分页按钮
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  const container = document.getElementById('pageBtns');
+  const btns = [];
+
+  btns.push(`<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage<=1?'disabled':''}>上一页</button>`);
+
+  const range = getPageRange(currentPage, totalPages);
+  range.forEach(p => {
+    if(p === '...') btns.push('<span style="padding:0 6px;color:#bbb;">...</span>');
+    else btns.push(`<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`);
+  });
+
+  btns.push(`<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage>=totalPages?'disabled':''}>下一页</button>`);
+
+  container.innerHTML = btns.join('');
+}
+
+function getPageRange(cur, total) {
+  if(total <= 7) return Array.from({length:total},(_,i)=>i+1);
+  let arr = [1];
+  if(cur > 4) arr.push('...');
+  const start = Math.max(2, cur-1), end = Math.min(total-1, cur+1);
+  for(let i=start;i<=end;i++) arr.push(i);
+  if(total - cur > 3) arr.push('...');
+  arr.push(total);
+  return arr;
+}
+
+function goPage(page) {
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  if(page<1||page>totalPages) return;
+  currentPage = page;
+  renderTable();
+}
+
+function changePageSize() {
+  pageSize = parseInt(document.getElementById('pageSizeSel').value);
+  currentPage = 1;
+  renderTable();
+}
+
+/* ================================================================
+   详情弹窗（3/4宽高）
+   ================================================================ */
+function showDetail(index) {
+  const row = filteredData[index];
+  if(!row) return;
+
+  const renderRichField = (value) => {
+    if(value === null || value === undefined || value === '') return '-';
+    let str = String(value).trim();
+
+    // 检测是否包含 HTML 标签（排除纯文本中的 < 和 > 符号）
+    const htmlTagPattern = /<\s*(?:p|div|span|h[1-6]|br|hr|img|a|ul|ol|li|blockquote|pre|code|table|tr|td|th|thead|tbody|strong|b|em|i|u|s|sub|sup|video|iframe|figure|figcaption)\b[\s>]/i;
+    const isHtml = htmlTagPattern.test(str);
+
+    if(isHtml) {
+      // 已是 HTML：直接净化（移除危险标签/属性），保留富文本结构
+      str = sanitizeHtml(str);
+      // 保留文本节点中的换行符（HTML默认将\n渲染为空格，需转为<br>）
+      str = preserveHtmlNewlines(str);
+      // 为已有的 <img> 标签添加预览能力
+      str = enhanceImgTags(str);
+    } else {
+      // 纯文本 / Markdown：先转义HTML特殊字符
+      str = str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      // Markdown -> HTML 转换
+      str = parseMarkdown(str);
+    }
+
+    // 统一后处理：
+    // 1. 识别图片URL并渲染为 <img>（覆盖更多格式）
+    str = renderImageUrls(str);
+    // 2. 非图片URL渲染为可点击链接
+    str = renderNonImgLinks(str);
+
+    // 代理图片 URL（通过本地代理添加权限请求头）
+    str = proxyImgSrcs(str);
+    return `<div class="rich-text">${str}</div>`;
+  };
+
+  /**
+   * 保留 HTML 内容文本节点中的换行符
+   * 在标签间的纯文本中，将 \n 转为 <br>（跳过 <pre><code> 等保留格式的标签内容）
+   */
+  function preserveHtmlNewlines(html) {
+    // 按 HTML 标签拆分，仅处理文本片段
+    const parts = html.split(/(<[^>]+>)/);
+    const preserveTags = new Set(['pre','code','textarea']);
+    let inPreserve = 0;
+    return parts.map(part => {
+      const tagMatch = part.match(/^<\/?(\w+)/);
+      if(tagMatch) {
+        const tagName = tagMatch[1].toLowerCase();
+        if(preserveTags.has(tagName)) {
+          if(part.startsWith('</')) inPreserve = Math.max(0, inPreserve - 1);
+          else inPreserve++;
+        }
+        return part;
+      }
+      // 文本片段：仅在非保留区域内替换换行
+      if(inPreserve > 0) return part;
+      return part.replace(/\n/g, '<br>');
+    }).join('');
+  }
+
+  /**
+   * 增强已有的 <img> 标签：添加预览、错误处理、样式
+   */
+  function enhanceImgTags(html) {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    temp.querySelectorAll('img').forEach(img => {
+      // 确保有 alt 属性
+      if(!img.hasAttribute('alt')) img.alt = 'image';
+      // 添加点击预览（不覆盖已有的事件）
+      if(!img.onclick && !img.getAttribute('onclick')) {
+        img.setAttribute('onclick', 'previewImage(this.src)');
+      }
+      // 添加加载失败提示（不覆盖已有的 onerror）
+      if(!img.onerror && !img.getAttribute('onerror')) {
+        img.setAttribute('onerror', 'this.outerHTML=\'<span style=color:var(--text-label);font-size:12px>[image load failed]</span>\'');
+      }
+    });
+    return temp.innerHTML;
+  }
+
+  /**
+   * 从纯文本/混合内容中识别并渲染所有类型的图片 URL 为 <img>
+   * 支持多种格式：
+   *   - 带扩展名: .jpg .png .gif .webp .bmp .svg .avif .ico .tiff .tif
+   *   - 图床/CDN URL（含常见关键词）: pic, image, photo, img, upload, media, avatar, cover, thumb, screenshot, oss, cdn, s3, blob, file
+   *   - Base64 data URI
+   */
+  function renderImageUrls(text) {
+    // 先保护已有 <img src="..."> 和 <a href="..."> 中的 URL，避免被重复处理
+    const placeholders = [];
+    function hold(match) {
+      const idx = placeholders.length;
+      placeholders.push(match);
+      return `\x00IMGURL${idx}\x00`;
+    }
+    // 保护 <img ... src="url" ...> 和 <a ... href="url" ...>
+    text = text.replace(/<img\b[^>]*>/gi, hold);
+    text = text.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, hold);
+
+    // ① 带 image 扩展名的 URL（最精确匹配，优先处理）
+    // 注意：扩展名后可能还有更多查询参数（如 &hostname=...），需完整捕获
+    const extUrlPattern = /(https?:\/\/[^\s<>"']+?\.(?:jpg|jpeg|png|gif|webp|bmp|svg|avif|ico|tiff|tif)[^\s<>"']*)/gi;
+    text = text.replace(extUrlPattern, (_match, url) =>
+      `<br><img src="${url}" alt="image" onclick="previewImage(this.src)" onerror="this.outerHTML='<span style=color:var(--text-label);font-size:12px>[image load failed]</span>'"><br>`
+    );
+
+    // ② 图床/CDN URL（不含标准扩展名，但路径包含图片相关关键词）
+    const cdnKeywords = /(?:\/(?:images?|photos?|imgs?|pictures?|pics?|uploads?|media|avatars?|covers?|thumbs?|thumbnails?|screenshots?|assets?|files?|static|resources|attachments?|icons?|logos?|emojis?)\/|(?:oss-|cdn|s3|blob|imgur|imgbb|smms|cloudinary|unsplash|pexels|pixabay))/i;
+    const cdnUrlPattern = /(https?:\/\/[^\s<>"']+)/gi;
+    text = text.replace(cdnUrlPattern, (url) => {
+      if(/\.(?:html?|css|js|json|xml|pdf|docx?|xlsx?|pptx?|zip|rar|tar|gz)(\?[^\s]*)?$/i.test(url)) return url;
+
+      // 判断是否像图片 URL
+      const looksLikeImage = cdnKeywords.test(url) ||
+        /[?&](?:img|image|photo|pic|picture|thumb|avatar|cover|icon|logo|src|url|file)=/i.test(url) ||
+        /\/api\/[^<>"']*?(?:image|img|photo|pic|upload|file)/i.test(url);
+
+      if(looksLikeImage) {
+        return `<br><img src="${url}" alt="image" loading="lazy" onclick="previewImage(this.src)" onerror="this.outerHTML='<span style=color:var(--text-label);font-size:12px>[image load failed]</span>'"><br>`;
+      }
+      return url; // 不匹配则保留原样
+    });
+
+    // ③ Base64 data URI 图片
+    const b64Pattern = /(data:image\/(?:png|jpe?g|gif|webp|svg\+xml|bmp);base64,[A-Za-z0-9+\/=]+)/gi;
+    text = text.replace(b64Pattern, '<br><img src="$1" alt="base64-image" loading="lazy" onclick="previewImage(this.src)"><br>');
+
+    // 恢复被保护的标签
+    text = text.replace(/\x00IMGURL(\d+)\x00/g, (_m, idx) => placeholders[parseInt(idx)]);
+
+    return text;
+  }
+
+  /**
+   * 将非图片 URL 渲染为可点击链接（排除已处理的 img/a 标签）
+   */
+  function renderNonImgLinks(text) {
+    // 保护已有 <img ...> 和 <a ...>...</a> 标签，避免属性中的 URL 被重复处理
+    const placeholders = [];
+    function hold(match) {
+      const idx = placeholders.length;
+      placeholders.push(match);
+      return `\x00LINKURL${idx}\x00`;
+    }
+    text = text.replace(/<img\b[^>]*>/gi, hold);
+    text = text.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, hold);
+
+    // 匹配裸 URL
+    const urlPattern = /\b(https?:\/\/[^\s<>"']+)/g;
+    text = text.replace(urlPattern, (url) => {
+      // 图片类扩展名跳过（已在上面处理）
+      if(/\.(?:jpg|jpeg|png|gif|webp|bmp|svg|avif|ico|tiff|tif)(\?[^\s]*)?$/i.test(url)) return url;
+      // data URI 跳过
+      if(/^data:/i.test(url)) return url;
+      return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+    });
+
+    // 恢复被保护的标签
+    text = text.replace(/\x00LINKURL(\d+)\x00/g, (_m, idx) => placeholders[parseInt(idx)]);
+
+    return text;
+  }
+
+  // HTML 净化：移除 script/style/event handler，保留安全标签和样式
+  function sanitizeHtml(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    // 移除危险元素
+    const dangerousTags = ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input'];
+    dangerousTags.forEach(tag => {
+      div.querySelectorAll(tag).forEach(el => el.remove());
+    });
+    // 移除所有事件属性 (on*)
+    div.querySelectorAll('*').forEach(el => {
+      Array.from(el.attributes || []).filter(attr => attr.name.startsWith('on')).forEach(attr => el.removeAttribute(attr.name));
+      // 移除 javascript: 协议
+      ['href', 'src', 'action'].forEach(prop => {
+        if(el.getAttribute(prop) && el.getAttribute(prop).toLowerCase().includes('javascript:')) {
+          el.removeAttribute(prop);
+        }
+      });
+    });
+    return div.innerHTML;
+  }
+
+  // 基础 Markdown 解析器（覆盖常见语法）
+  function parseMarkdown(md) {
+    // 代码块 ```...``` -> <pre><code>
+    md = md.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) =>
+      `<pre><code>${escapeCodeContent(code)}</code></pre>`
+    );
+    // 行内代码 `...` -> <code>
+    md = md.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // 标题 ### ## # -> h3 h2 h1
+    md = md.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+    md = md.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    md = md.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    md = md.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    // 粗体 **text** 或 __text__
+    md = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    md = md.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    // 斜体 *text* 或 _text_
+    md = md.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+    md = md.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>');
+    // 删除线 ~~text~~
+    md = md.replace(/~~(.+?)~~/g, '<del>$1</del>');
+    // 引用块 > ... -> blockquote
+    md = md.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+    // 无序列表 - item -> <li>
+    md = md.replace(/^[-*+] (.+)$/gm, '<li>$1</li>');
+    // 连续的 <li> 包裹在 <ul> 中
+    md = md.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+    // 有序列表 \d+. item -> <li>
+    md = md.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+    // 分割线 --- 或 *** 或 ___ -> <hr>
+    md = md.replace(/^[-*_]{3,}$/gm, '<hr>');
+    // 图片 ![alt](url) -> <img> (保留给后续统一处理)
+    md = md.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<br><img src="$2" alt="$1" onclick="previewImage(this.src)" onerror="this.outerHTML=\'<span style=color:var(--text-label);font-size:12px>[image load failed]</span>\'">');
+    // 链接 [text](url) -> <a>
+    md = md.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    // 换行
+    md = md.replace(/\n/g, '<br>');
+    return md;
+  }
+
+  // 转义代码内容中的 HTML
+  function escapeCodeContent(code) {
+    return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // 基于 COLUMN_CONFIG 动态构建详情页
+  const nonRichCols = COLUMN_CONFIG.filter(c => !c.rich);
+  const richCols = COLUMN_CONFIG.filter(c => c.rich);
+
+  // 左侧：非富文本字段（Basic Info 卡片）
+  const leftHtml = nonRichCols.length > 0 ? `
+    <div class="detail-left">
+      <div class="detail-card">
+        <h4>Basic Info</h4>
+        ${nonRichCols.map(col => `
+          <div class="detail-field">
+            <div class="detail-label">${escapeHtml(col.key)}</div>
+            <div class="detail-value">${escapeHtml(row[col.key] ?? '-')}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  // 右侧：富文本字段（每个字段一个卡片）
+  const rightHtml = richCols.length > 0 ? `
+    <div class="detail-right">
+      ${richCols.map(col => `
+        <div class="detail-card" style="flex:1;">
+          <h4>${escapeHtml(col.key)}</h4>
+          <div class="detail-value">${renderRichField(row[col.key])}</div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  document.getElementById('detailContent').innerHTML = leftHtml + rightHtml;
+
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+function closeModalOnOverlay(e) {
+  if(e.target === e.currentTarget) closeModal();
+}
+
+/* 图片预览 */
+function previewImage(src) {
+  const overlay = document.getElementById('imgPreviewOverlay');
+  const img = document.getElementById('imgPreviewImg');
+  img.src = proxyUrl(src);
+  overlay.classList.add('show');
+}
+function closeImgPreview() {
+  const overlay = document.getElementById('imgPreviewOverlay');
+  overlay.classList.remove('show');
+  const img = document.getElementById('imgPreviewImg');
+  img.src = '';
+}
+// ESC 关闭图片预览
+document.addEventListener('keydown', function(e) {
+  if(e.key === 'Escape') {
+    closeImgPreview();
+    closeModal();
+  }
+});
+
+/* ================================================================
+   日期范围选择器
+   ================================================================ */
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function toggleDatePicker() {
+  const dropdown = document.getElementById('openTimeDateDropdown');
+  const input = dropdown.previousElementSibling;
+  const isOpen = dropdown.classList.contains('show');
+  if (!isOpen) {
+    dropdown.classList.add('show');
+    input.classList.add('active');
+  } else {
+    dropdown.classList.remove('show');
+    input.classList.remove('active');
+  }
+}
+
+function selectDateShortcut(days) {
+  const dropdown = document.getElementById('openTimeDateDropdown');
+  const shortcuts = dropdown.querySelectorAll('.date-shortcut-item');
+  shortcuts.forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+
+  if (days) {
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - days + 1);
+    document.getElementById('openTimeDateStart').value = formatDate(startDate);
+    document.getElementById('openTimeDateEnd').value = formatDate(today);
+    updateDateDisplay();
+    closeDatePicker();
+    doSearch();
+  }
+}
+
+function onDateInputChange() {
+  const dropdown = document.getElementById('openTimeDateDropdown');
+  dropdown.querySelectorAll('.date-shortcut-item').forEach(s => s.classList.remove('active'));
+}
+
+function updateDateDisplay() {
+  const dateStart = document.getElementById('openTimeDateStart').value;
+  const dateEnd = document.getElementById('openTimeDateEnd').value;
+  const dateText = document.getElementById('openTimeDateText');
+  const clearIcon = document.getElementById('openTimeClearIcon');
+  if (dateStart || dateEnd) {
+    dateText.textContent = `${dateStart || '...'} 至 ${dateEnd || '...'}`;
+    dateText.classList.remove('placeholder');
+    clearIcon.style.display = 'block';
+  } else {
+    dateText.textContent = '选择日期范围';
+    dateText.classList.add('placeholder');
+    clearIcon.style.display = 'none';
+  }
+}
+
+function clearDateRange() {
+  document.getElementById('openTimeDateStart').value = '';
+  document.getElementById('openTimeDateEnd').value = '';
+  updateDateDisplay();
+  const dropdown = document.getElementById('openTimeDateDropdown');
+  dropdown.querySelectorAll('.date-shortcut-item').forEach(s => s.classList.remove('active'));
+  doSearch();
+}
+
+function cancelDatePicker() { closeDatePicker(); }
+
+function confirmDatePicker() {
+  updateDateDisplay();
+  closeDatePicker();
+  doSearch();
+}
+
+function closeDatePicker() {
+  const dropdown = document.getElementById('openTimeDateDropdown');
+  const input = dropdown.previousElementSibling;
+  dropdown.classList.remove('show');
+  input.classList.remove('active');
+}
+
+/* 点击外部关闭日期选择器 */
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#openTimeDateRangePicker')) {
+    const dropdown = document.getElementById('openTimeDateDropdown');
+    if (dropdown && dropdown.classList.contains('show')) {
+      dropdown.classList.remove('show');
+      dropdown.previousElementSibling.classList.remove('active');
+    }
+  }
+});
+
+/* 解析日期字符串为 Date 对象，支持多种格式 */
+function parseDateStr(str) {
+  if (!str) return null;
+  // 尝试标准格式 yyyy-MM-dd 或 yyyy/MM/dd
+  const match = str.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+  // 尝试时间戳
+  const ts = Date.parse(str);
+  if (!isNaN(ts)) return new Date(ts);
+  return null;
+}
+
+/* ================================================================
+   工具函数
+   ================================================================ */
+function escapeHtml(str) {
+  if(str === null || str === undefined) return '-';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML.replace(/\n/g, '<br>');
+}
+
+/* 去除 HTML 标签，只保留纯文本内容 */
+function stripHtml(str) {
+  if(!str) return '-';
+  const div = document.createElement('div');
+  div.innerHTML = String(str);
+  return div.textContent || div.innerText || '';
+}
+
+function truncateStr(val, len) {
+  const s = String(val ?? '');
+  return s.length > len ? s.slice(0,len) + '...' : s;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+- [x] 20260430
+- COLUMN_CONFIG 配置项字段变更（其中 ticketId、incidentId 全局替换 tOrder、imOrder）
+- COLUMN_CONFIG 配置项的对象新增 visable 字段，控制列设置的显示/隐藏
+- 分页列表页面描述和解决方案搜索条件合并（字段描述下拉列表-共用一个搜索框）
+- COLUMN_CONFIG 配置项的对象新增 name 字段，意思为字段的中文名
+- 搜索条件新增开单时间范围
+- 搜索条件新增多字段下拉汇总搜索条件

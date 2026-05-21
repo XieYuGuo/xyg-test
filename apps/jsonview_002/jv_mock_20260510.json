@@ -1,0 +1,383 @@
+{
+  "company": "云翼科技有限公司",
+  "founded": 2018,
+  "active": true,
+  "headquarters": {
+    "country": "中国",
+    "province": "广东",
+    "city": "深圳",
+    "address": "南山区科技园南区T2栋18楼",
+    "geo": {
+      "lat": 22.5431,
+      "lng": 113.9530,
+      "timezone": "Asia/Shanghai"
+    }
+  },
+  "departments": [
+    {
+      "id": "dept-001",
+      "name": "研发部",
+      "head": {
+        "name": "张明远",
+        "title": "技术总监",
+        "email": "zhangmy@yunwing.com",
+        "joinedAt": "2018-03-15"
+      },
+      "budget": 5800000,
+      "teams": [
+        {
+          "teamId": "team-fe",
+          "teamName": "前端组",
+          "members": 12,
+          "techStack": ["Vue3", "TypeScript", "Vite", "TailwindCSS"],
+          "currentSprint": {
+            "name": "Sprint 24-18",
+            "startDate": "2026-05-05",
+            "endDate": "2026-05-19",
+            "status": "in_progress",
+            "stories": [
+              {
+                "id": "ST-1001",
+                "title": "订单列表分页功能",
+                "points": 5,
+                "assignee": "李小红",
+                "status": "done",
+                "tags": ["feature", "frontend"]
+              },
+              {
+                "id": "ST-1002",
+                "title": "图片代理Bug修复",
+                "points": 3,
+                "assignee": "王建国",
+                "status": "in_progress",
+                "tags": ["bugfix", "frontend"]
+              },
+              {
+                "id": "ST-1003",
+                "title": "数据看板可视化",
+                "points": 8,
+                "assignee": "陈思雨",
+                "status": "todo",
+                "tags": ["feature", "frontend", "chart"]
+              }
+            ]
+          }
+        },
+        {
+          "teamId": "team-be",
+          "teamName": "后端组",
+          "members": 8,
+          "techStack": ["Java", "Spring Boot", "MySQL", "Redis"],
+          "currentSprint": {
+            "name": "Sprint 24-18",
+            "startDate": "2026-05-05",
+            "endDate": "2026-05-19",
+            "status": "in_progress",
+            "stories": [
+              {
+                "id": "ST-2001",
+                "title": "订单导出API优化",
+                "points": 5,
+                "assignee": "刘伟",
+                "status": "in_progress",
+                "tags": ["optimization", "backend"]
+              }
+            ]
+          }
+        },
+        {
+          "teamId": "team-qa",
+          "teamName": "测试组",
+          "members": 5,
+          "tools": ["Selenium", "JMeter", "Postman"],
+          "testCoverage": 87.5
+        }
+      ]
+    },
+    {
+      "id": "dept-002",
+      "name": "产品部",
+      "head": {
+        "name": "赵雅琴",
+        "title": "产品VP",
+        "email": "zhaoyq@yunwing.com",
+        "joinedAt": "2019-06-01"
+      },
+      "budget": 2200000,
+      "teams": [
+        {
+          "teamId": "team-pm",
+          "teamName": "产品经理组",
+          "members": 6
+        },
+        {
+          "teamId": "team-ux",
+          "teamName": "UX设计组",
+          "members": 4,
+          "tools": ["Figma", "Sketch", "Principle"]
+        }
+      ]
+    },
+    {
+      "id": "dept-003",
+      "name": "市场部",
+      "head": {
+        "name": "孙浩然",
+        "title": "市场总监",
+        "email": "sunhr@yunwing.com",
+        "joinedAt": "2020-01-10"
+      },
+      "budget": 3500000,
+      "channels": [
+        {
+          "name": "线上投放",
+          "platforms": ["抖音", "微信朋友圈", "小红书", "B站"],
+          "monthlyBudget": 800000,
+          "kpi": {
+            "impressions": 5000000,
+            "clicks": 150000,
+            "conversions": 3000,
+            "ctr": 3.0
+          }
+        },
+        {
+          "name": "线下活动",
+          "platforms": ["行业展会", "技术沙龙"],
+          "monthlyBudget": 200000,
+          "kpi": {
+            "leads": 500,
+            "conversions": 50,
+            "ctr": null
+          }
+        }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "productId": "prod-001",
+      "name": "云翼数据中台",
+      "version": "3.2.1",
+      "releaseDate": "2026-04-20",
+      "pricing": {
+        "starter": {
+          "monthlyPrice": 2999,
+          "features": ["数据接入", "基础报表", "5GB存储"]
+        },
+        "professional": {
+          "monthlyPrice": 9999,
+          "features": ["数据接入", "高级报表", "50GB存储", "API调用", "数据脱敏"]
+        },
+        "enterprise": {
+          "monthlyPrice": null,
+          "features": ["全部专业版功能", "无限存储", "私有部署", "专属客服"],
+          "contactSales": true
+        }
+      },
+      "metrics": {
+        "totalUsers": 12580,
+        "monthlyActiveUsers": 8340,
+        "retentionRate": 0.72,
+        "npsScore": 68,
+        "uptime": 99.97
+      },
+      "modules": [
+        {
+          "name": "数据接入中心",
+          "status": "stable",
+          "connectors": 42
+        },
+        {
+          "name": "智能报表引擎",
+          "status": "stable",
+          "connectors": 0
+        },
+        {
+          "name": "实时流计算",
+          "status": "beta",
+          "connectors": 12
+        }
+      ]
+    },
+    {
+      "productId": "prod-002",
+      "name": "云翼低代码平台",
+      "version": "2.0.0-beta",
+      "releaseDate": null,
+      "pricing": {
+        "free": {
+          "monthlyPrice": 0,
+          "features": ["5个应用", "基础组件", "社区支持"]
+        },
+        "team": {
+          "monthlyPrice": 4999,
+          "features": ["无限应用", "高级组件", "工作流引擎", "优先支持"]
+        }
+      },
+      "metrics": {
+        "totalUsers": 4230,
+        "monthlyActiveUsers": 2180,
+        "retentionRate": 0.58,
+        "npsScore": 52,
+        "uptime": 99.85
+      }
+    }
+  ],
+  "financials": {
+    "currency": "CNY",
+    "fiscalYear": 2025,
+    "revenue": {
+      "total": 89600000,
+      "breakdown": {
+        "subscription": 67200000,
+        "professionalService": 15600000,
+        "training": 3800000,
+        "other": 3000000
+      }
+    },
+    "expenses": {
+      "total": 78200000,
+      "breakdown": {
+        "salary": 45000000,
+        "infrastructure": 12800000,
+        "marketing": 9500000,
+        "office": 6200000,
+        "other": 4700000
+      }
+    },
+    "profit": 11400000,
+    "growth": {
+      "yoyRevenue": 0.35,
+      "yoyProfit": 0.22,
+      "monthlyRecurring": 7466667,
+      "arr": 89600000
+    }
+  },
+  "customers": [
+    {
+      "id": "cust-001",
+      "name": "鑫盛金融集团",
+      "industry": "金融",
+      "tier": "enterprise",
+      "contractStart": "2023-08-01",
+      "contractEnd": "2026-07-31",
+      "monthlyFee": 280000,
+      "contacts": [
+        {
+          "name": "周经理",
+          "role": "技术负责人",
+          "phone": "138****5678"
+        },
+        {
+          "name": "吴总监",
+          "role": "采购负责人",
+          "phone": "139****1234"
+        }
+      ],
+      "satisfaction": 4.5
+    },
+    {
+      "id": "cust-002",
+      "name": "启明教育科技",
+      "industry": "教育",
+      "tier": "professional",
+      "contractStart": "2024-01-15",
+      "contractEnd": "2025-12-31",
+      "monthlyFee": 9999,
+      "contacts": [
+        {
+          "name": "林老师",
+          "role": "项目负责人",
+          "phone": "136****9876"
+        }
+      ],
+      "satisfaction": 3.8
+    },
+    {
+      "id": "cust-003",
+      "name": "汇通物流有限公司",
+      "industry": "物流",
+      "tier": "enterprise",
+      "contractStart": "2022-03-01",
+      "contractEnd": "2027-02-28",
+      "monthlyFee": 150000,
+      "contacts": [
+        {
+          "name": "郑总",
+          "role": "CTO",
+          "phone": "135****4321"
+        },
+        {
+          "name": "马经理",
+          "role": "运维主管",
+          "phone": "137****8765"
+        }
+      ],
+      "satisfaction": 4.2
+    }
+  ],
+  "notifications": [
+    {
+      "type": "alert",
+      "level": "warning",
+      "message": "服务器 SH-DB-02 CPU使用率超过85%",
+      "timestamp": "2026-05-10T22:15:30+08:00",
+      "resolved": false
+    },
+    {
+      "type": "info",
+      "level": "info",
+      "message": "云翼数据中台 v3.2.1 已发布",
+      "timestamp": "2026-04-20T10:00:00+08:00",
+      "resolved": true
+    },
+    {
+      "type": "alert",
+      "level": "critical",
+      "message": "支付网关响应超时 (>10s)",
+      "timestamp": "2026-05-10T23:45:12+08:00",
+      "resolved": false
+    }
+  ],
+  "config": {
+    "features": {
+      "darkMode": true,
+      "i18n": true,
+      "auditLog": true,
+      "sso": {
+        "enabled": true,
+        "providers": ["LDAP", "SAML2.0", "OAuth2.0"],
+        "defaultProvider": "SAML2.0"
+      }
+    },
+    "limits": {
+      "maxProjectsPerOrg": 100,
+      "maxMembersPerProject": 500,
+      "maxApiCallsPerMinute": 6000,
+      "maxFileUploadSize": "500MB"
+    },
+    "integrations": [
+      {
+        "name": "Jira",
+        "enabled": true,
+        "syncInterval": "5m"
+      },
+      {
+        "name": "Slack",
+        "enabled": false,
+        "syncInterval": null
+      },
+      {
+        "name": "企业微信",
+        "enabled": true,
+        "syncInterval": "1m"
+      }
+    ]
+  },
+  "metadata": {
+    "schemaVersion": "2.1",
+    "generatedAt": "2026-05-11T00:21:00+08:00",
+    "generator": "yunwing-mock-engine",
+    "checksum": "a3f9e7b2c1d4"
+  }
+}

@@ -1,0 +1,2419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON 表格可视化工具</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23667eea'/%3E%3Cstop offset='100%25' stop-color='%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='6' fill='url(%23g)'/%3E%3Crect x='6' y='8' width='20' height='4' rx='1' fill='white' opacity='0.9'/%3E%3Crect x='6' y='14' width='20' height='4' rx='1' fill='white' opacity='0.7'/%3E%3Crect x='6' y='20' width='20' height='4' rx='1' fill='white' opacity='0.5'/%3E%3C/svg%3E">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #f5f7fa;
+            --bg-card: #ffffff;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --border-color: #e4e7ed;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+            --primary-hover: #5568d3;
+            --success-color: #67c23a;
+            --danger-color: #f56c6c;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a1a2e;
+            --bg-card: #16213e;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --border-color: #2a2a4a;
+            --shadow: 0 2px 12px rgba(0,0,0,0.3);
+        }
+        
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        [data-theme="dark"] ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+        
+        [data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #3a3a5a;
+        }
+        
+        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a6a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            flex-shrink: 0;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+        
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            opacity: 0.9;
+        }
+        
+        /* Input Section */
+        .input-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .input-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .input-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .json-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .json-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .json-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.3s;
+        }
+        
+        .json-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .control-item {
+            width: 100%;
+        }
+        
+        .control-item label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+        
+        .control-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.3s;
+        }
+        
+        .control-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .control-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-start;
+        }
+        
+        .hint-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        /* Table Section */
+        .table-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            flex: 1;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .table-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .data-count {
+            display: inline-block;
+            background: var(--primary-gradient);
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 10px;
+            border-radius: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        /* Column Settings Dropdown */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 8px;
+            background: var(--bg-card);
+            min-width: 380px;
+            max-height: 500px;
+            overflow-y: auto;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            z-index: 1000;
+            padding: 12px;
+        }
+        
+        .dropdown-content.show {
+            display: block;
+        }
+        
+        .dropdown-header {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .column-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .column-item:hover {
+            background: var(--bg-primary);
+        }
+        
+        .column-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+        
+        .column-item label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+        
+        .dropdown-footer {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        /* Table Container */
+        .table-container {
+            flex: 1;
+            min-height: 300px;
+            overflow: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .data-table th {
+            background: var(--bg-primary);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .data-table tr:hover {
+            background: var(--bg-primary);
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .empty-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .empty-hint {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+        
+        /* Fullscreen */
+        .fullscreen-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 9999;
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+        }
+        
+        .fullscreen-container.active {
+            display: flex;
+        }
+        
+        .fullscreen-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        .fullscreen-content {
+            flex: 1;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .fullscreen-table-container {
+            flex: 1;
+            overflow: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        
+        /* Message */
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .message.error {
+            background: #fef0f0;
+            color: var(--danger-color);
+            border: 1px solid #fde2e2;
+            display: block;
+        }
+        
+        .message.success {
+            background: #f0f9ff;
+            color: var(--primary-color);
+            border: 1px solid #d9ecff;
+            display: block;
+        }
+        
+        /* Nested Table Styles */
+        .nested-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .nested-table th {
+            background: var(--bg-primary);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .nested-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+            color: var(--text-primary);
+            word-break: break-word;
+        }
+
+        .nested-table tbody tr:hover {
+            background: var(--bg-primary);
+        }
+
+        .nested-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .nested-key {
+            font-weight: 600;
+            white-space: nowrap;
+            min-width: 120px;
+            max-width: 220px;
+            width: 25%;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+        }
+
+        .nested-key .key-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .nested-key .badge-obj {
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--primary-color);
+        }
+
+        .nested-key .badge-arr {
+            background: rgba(103, 194, 58, 0.15);
+            color: var(--success-color);
+        }
+
+        .nested-value {
+            word-break: break-word;
+        }
+
+        .nested-value .primitive-value {
+            font-family: 'Courier New', monospace;
+        }
+
+        .nested-value .null-value {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .nested-value .bool-value {
+            color: #e6a23c;
+            font-weight: 500;
+        }
+
+        .nested-value .number-value {
+            color: #f56c6c;
+        }
+
+        .nested-value .string-value {
+            color: var(--text-primary);
+        }
+
+        /* Global primitive value styles (works in arr-row-table td too) */
+        .primitive-value {
+            font-family: 'Courier New', monospace;
+        }
+
+        .primitive-value.null-value {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .primitive-value.bool-value {
+            color: #e6a23c;
+            font-weight: 500;
+        }
+
+        .primitive-value.number-value {
+            color: #f56c6c;
+        }
+
+        .primitive-value.string-value {
+            color: var(--text-primary);
+        }
+
+        .nested-subtable-wrap {
+            margin: 4px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .nested-depth-0 { border: 1px solid #e4e7ed; background: transparent; }
+        .nested-depth-1 { border: 1px solid rgba(102, 126, 234, 0.25); background: rgba(102, 126, 234, 0.03); }
+        .nested-depth-2 { border: 1px solid rgba(118, 75, 162, 0.25); background: rgba(118, 75, 162, 0.03); }
+        .nested-depth-3 { border: 1px solid rgba(103, 194, 58, 0.25); background: rgba(103, 194, 58, 0.03); }
+        .nested-depth-4 { border: 1px solid rgba(230, 162, 60, 0.25); background: rgba(230, 162, 60, 0.03); }
+        .nested-depth-5 { border: 1px solid rgba(245, 108, 108, 0.25); background: rgba(245, 108, 108, 0.03); }
+
+        [data-theme="dark"] .nested-depth-0 { border-color: #2a2a4a; background: transparent; }
+        [data-theme="dark"] .nested-depth-1 { border-color: rgba(102, 126, 234, 0.35); background: rgba(102, 126, 234, 0.06); }
+        [data-theme="dark"] .nested-depth-2 { border-color: rgba(118, 75, 162, 0.35); background: rgba(118, 75, 162, 0.06); }
+        [data-theme="dark"] .nested-depth-3 { border-color: rgba(103, 194, 58, 0.35); background: rgba(103, 194, 58, 0.06); }
+        [data-theme="dark"] .nested-depth-4 { border-color: rgba(230, 162, 60, 0.35); background: rgba(230, 162, 60, 0.06); }
+        [data-theme="dark"] .nested-depth-5 { border-color: rgba(245, 108, 108, 0.35); background: rgba(245, 108, 108, 0.06); }
+
+        .nested-table .nested-key-cell {
+            background: rgba(102, 126, 234, 0.04);
+        }
+
+        [data-theme="dark"] .nested-table .nested-key-cell {
+            background: rgba(102, 126, 234, 0.08);
+        }
+
+        /* Array Row Table (matches .data-table style) */
+        .arr-row-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .arr-row-table th {
+            background: var(--bg-primary);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .arr-row-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            vertical-align: top;
+            word-break: break-word;
+        }
+
+        .arr-row-table tbody tr:hover {
+            background: var(--bg-primary);
+        }
+
+        .arr-row-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* th badge */
+        .th-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .th-badge-obj {
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--primary-color);
+        }
+
+        .th-badge-arr {
+            background: rgba(103, 194, 58, 0.15);
+            color: var(--success-color);
+        }
+
+        /* Array row index */
+        .arr-row-index {
+            display: inline-block;
+            background: rgba(103, 194, 58, 0.15);
+            color: var(--success-color);
+            padding: 0 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .array-index {
+            display: inline-block;
+            background: rgba(103, 194, 58, 0.15);
+            color: var(--success-color);
+            padding: 0 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 3px;
+            border: 1px solid var(--border-color);
+        }
+
+        .view-toggle-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .view-toggle-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .view-toggle-btn:not(.active):hover {
+            color: var(--text-primary);
+            background: var(--border-color);
+        }
+
+        .collapse-toggle {
+            cursor: pointer;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .collapse-toggle:hover {
+            opacity: 0.8;
+        }
+
+        .collapse-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            border-radius: 3px;
+            background: rgba(102, 126, 234, 0.12);
+            color: var(--primary-color);
+            font-size: 10px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .collapsed-content {
+            display: none;
+        }
+
+        /* Root Row Card */
+        .root-row {
+            margin-bottom: 12px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: box-shadow 0.2s;
+        }
+
+        .root-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .root-row:hover {
+            box-shadow: 0 2px 12px rgba(102, 126, 234, 0.12);
+        }
+
+        .root-row-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(102, 126, 234, 0.06);
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .root-row-header:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        [data-theme="dark"] .root-row-header {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        [data-theme="dark"] .root-row-header:hover {
+            background: rgba(102, 126, 234, 0.16);
+        }
+
+        .root-row-key {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--primary-color);
+        }
+
+        .root-row-badge {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .root-row-badge-obj {
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--primary-color);
+        }
+
+        .root-row-badge-arr {
+            background: rgba(103, 194, 58, 0.15);
+            color: var(--success-color);
+        }
+
+        .root-row-primitive {
+            font-size: 13px;
+            padding: 10px 16px;
+        }
+
+        .root-row-icon {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            line-height: 18px;
+            text-align: center;
+            border-radius: 4px;
+            background: rgba(102, 126, 234, 0.12);
+            color: var(--primary-color);
+            font-size: 11px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .root-row-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .root-row-summary {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: auto;
+        }
+
+        .root-row-body {
+            padding: 0;
+        }
+
+        .root-row-body.collapsed-content {
+            display: none;
+        }
+
+        .root-row-body-inner {
+            padding: 8px;
+        }
+
+        /* Cell expandable nested value */
+        .cell-nested {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none;
+            padding: 3px 8px;
+            border-radius: 5px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.2s;
+        }
+
+        .cell-nested:hover {
+            background: rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+
+        [data-theme="dark"] .cell-nested {
+            background: rgba(102, 126, 234, 0.12);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        [data-theme="dark"] .cell-nested:hover {
+            background: rgba(102, 126, 234, 0.22);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .cell-expand-btn {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            border-radius: 3px;
+            background: rgba(102, 126, 234, 0.15);
+            color: var(--primary-color);
+            font-size: 9px;
+            transition: transform 0.2s, background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .cell-expand-btn.expanded {
+            transform: rotate(90deg);
+            background: rgba(102, 126, 234, 0.25);
+        }
+
+        .cell-expand-btn.collapsed-icon {
+            transform: rotate(0deg);
+        }
+
+        .cell-expand-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .cell-nested-body {
+            margin-top: 6px;
+            border-radius: 6px;
+            overflow: hidden;
+            padding: 4px;
+        }
+
+        .cell-nested-body.collapsed-content {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .json-label-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .json-actions {
+                width: 100%;
+                justify-content: flex-end;
+                flex-wrap: wrap;
+            }
+            
+            .table-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+        }
+
+        /* Tree Column Settings */
+        .column-tree-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .column-tree-item:hover {
+            background: var(--bg-primary);
+        }
+
+        .column-tree-item input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            margin-right: 8px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        .column-tree-item label {
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-primary);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .col-type-hint {
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Multi-level Table Headers */
+        .data-table thead tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th.group-header {
+            background: rgba(102, 126, 234, 0.08);
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 12px;
+        }
+
+        [data-theme="dark"] .data-table th.group-header {
+            background: rgba(102, 126, 234, 0.12);
+        }
+
+        .data-table th.array-header {
+            background: rgba(103, 194, 58, 0.06);
+        }
+
+        [data-theme="dark"] .data-table th.array-header {
+            background: rgba(103, 194, 58, 0.1);
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>JSON 表格可视化工具</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()">
+                    <span id="themeIcon">☀️</span>
+                    <span id="themeText">浅色模式</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Input Section -->
+        <div class="input-section">
+            <div class="input-header">
+                <h2>数据输入与配置</h2>
+            </div>
+            
+            <div class="input-content">
+                <div class="json-label-row">
+                    <label style="font-size: 14px; font-weight: 500; color: var(--text-secondary);">JSON 数据</label>
+                    <div class="json-actions">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <label style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">表格标题</label>
+                            <input type="text" class="control-input" id="tableTitle" placeholder="数据表格" style="width: 160px; padding: 5px 10px; font-size: 12px;">
+                        </div>
+                        <button class="btn btn-secondary" onclick="formatJSON()" title="格式化JSON">
+                            <span>📝</span>
+                            <span>格式化</span>
+                        </button>
+                        <button class="btn btn-secondary" onclick="compressJSON()" title="压缩JSON">
+                            <span>🗜️</span>
+                            <span>压缩</span>
+                        </button>
+                    </div>
+                </div>
+                <textarea class="json-textarea" id="jsonInput" placeholder="请粘贴 JSON 数据，支持对象数组格式...&#10;&#10;示例：&#10;[&#10;  {&quot;name&quot;: &quot;张三&quot;, &quot;age&quot;: 28, &quot;city&quot;: &quot;北京&quot;},&#10;  {&quot;name&quot;: &quot;李四&quot;, &quot;age&quot;: 32, &quot;city&quot;: &quot;上海&quot;}&#10;]"></textarea>
+                <div class="message" id="inputMessage"></div>
+                
+                <div class="control-item">
+                    <label>默认显示字段（支持嵌套路径）</label>
+                    <input type="text" class="control-input" id="defaultFields" placeholder="字段1, 字段2, 字段3">
+                    <div class="hint-text">多个字段用逗号分隔，留空则显示全部。对象用点号（如 headquarters.country），数组用中括号（如 departments[id]）</div>
+                </div>
+                
+                <div class="control-actions">
+                    <button class="btn btn-primary" onclick="parseJSON()">
+                        <span>📊</span>
+                        <span>解析数据</span>
+                    </button>
+                    <div class="view-toggle" id="viewModeToggle">
+                        <button class="view-toggle-btn active" id="btnHorizontal" onclick="switchViewMode('horizontal')">横表</button>
+                        <button class="view-toggle-btn" id="btnVertical" onclick="switchViewMode('vertical')">竖表</button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearInput()">
+                        <span>🗑️</span>
+                        <span>清空</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Table Section -->
+        <div class="table-section" id="tableSection">
+            <div class="table-header">
+                <div style="display: flex; align-items: center;">
+                    <h2 id="tableHeaderTitle">数据表格</h2>
+                    <span id="dataCount" class="data-count"></span>
+                </div>
+                <div class="table-actions">
+                    <div class="dropdown" id="columnSettingsDropdown">
+                        <button class="btn btn-secondary" onclick="toggleDropdown()">
+                            <span>⚙️</span>
+                            <span>列设置</span>
+                        </button>
+                        <div class="dropdown-content" id="columnDropdown">
+                            <div class="dropdown-header">选择要显示的列</div>
+                            <div id="columnList"></div>
+                            <div class="dropdown-footer">
+                                <button class="btn btn-secondary" onclick="selectAllColumns()" style="padding: 6px 12px; font-size: 12px;">全选</button>
+                                <button class="btn btn-secondary" onclick="deselectAllColumns()" style="padding: 6px 12px; font-size: 12px;">全不选</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary" onclick="refreshColumns()">
+                        <span>🔄</span>
+                        <span>刷新</span>
+                    </button>
+                    
+                    <button class="btn btn-success" onclick="exportToExcel()">
+                        <span>📥</span>
+                        <span>导出Excel</span>
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="toggleFullscreen()">
+                        <span>⛶</span>
+                        <span>全屏</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-container" id="tableContainer">
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-text">暂无数据</div>
+                    <div class="empty-hint">请在上方粘贴 JSON 数据并点击"解析数据"按钮</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fullscreen Container -->
+    <div class="fullscreen-container" id="fullscreenContainer">
+        <div class="fullscreen-header">
+            <div style="display: flex; align-items: center;">
+                <h1 id="fullscreenTitle">数据表格</h1>
+                <span id="dataCountFullscreen" class="data-count"></span>
+            </div>
+            <div class="table-actions">
+                <div class="dropdown">
+                    <button class="btn btn-secondary" onclick="toggleDropdownFullscreen()">
+                        <span>⚙️</span>
+                        <span>列设置</span>
+                    </button>
+                    <div class="dropdown-content" id="columnDropdownFullscreen">
+                        <div class="dropdown-header">选择要显示的列</div>
+                        <div id="columnListFullscreen"></div>
+                        <div class="dropdown-footer">
+                            <button class="btn btn-secondary" onclick="selectAllColumnsFullscreen()" style="padding: 6px 12px; font-size: 12px;">全选</button>
+                            <button class="btn btn-secondary" onclick="deselectAllColumnsFullscreen()" style="padding: 6px 12px; font-size: 12px;">全不选</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="refreshColumnsFullscreen()">
+                    <span>🔄</span>
+                    <span>刷新</span>
+                </button>
+                
+                <button class="btn btn-success" onclick="exportToExcel()">
+                    <span>📥</span>
+                    <span>导出Excel</span>
+                </button>
+                
+                <button class="btn btn-secondary" onclick="closeFullscreen()">
+                    <span>✕</span>
+                    <span>退出全屏</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="fullscreen-content">
+            <div class="fullscreen-table-container" id="fullscreenTableContainer">
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-text">暂无数据</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ===== State =====
+        let jsonData = [];
+        let columnSchema = [];
+        let visiblePaths = new Set();
+        let defaultPaths = [];
+        let rawParsedData = null;
+        let schemaNodeIndex = 0;
+        let currentViewMode = 'horizontal'; // 'horizontal' or 'vertical'
+        let expandOverrides = new Map(); // id -> true(expanded) / false(collapsed)
+
+        function safeId(str) {
+            return String(str).replace(/[^a-zA-Z0-9_]/g, '_');
+        }
+
+        function restoreExpandState() {
+            expandOverrides.forEach(function(expanded, id) {
+                var content = document.getElementById('content_' + id);
+                var icon = document.getElementById('icon_' + id);
+                if (content) {
+                    if (expanded) {
+                        content.classList.remove('collapsed-content');
+                    } else {
+                        content.classList.add('collapsed-content');
+                    }
+                }
+                if (icon) {
+                    if (expanded) {
+                        icon.classList.remove('collapsed');
+                    } else {
+                        icon.classList.add('collapsed');
+                    }
+                }
+            });
+        }
+
+        // ===== Theme Toggle =====
+        function toggleTheme() {
+            const body = document.body;
+            const isDark = body.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                body.removeAttribute('data-theme');
+                document.getElementById('themeIcon').textContent = '🌙';
+                document.getElementById('themeText').textContent = '深色模式';
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                document.getElementById('themeIcon').textContent = '☀️';
+                document.getElementById('themeText').textContent = '浅色模式';
+            }
+        }
+
+        // ===== JSON Parse =====
+        function parseJSON() {
+            const input = document.getElementById('jsonInput').value.trim();
+            const messageEl = document.getElementById('inputMessage');
+
+            if (!input) { showMessage('请输入 JSON 数据', 'error'); return; }
+
+            try {
+                const parsed = JSON.parse(input);
+                rawParsedData = parsed;
+
+                if (Array.isArray(parsed)) {
+                    jsonData = parsed;
+                } else if (typeof parsed === 'object' && parsed !== null) {
+                    jsonData = [parsed];
+                } else {
+                    throw new Error('JSON 格式不正确');
+                }
+
+                if (jsonData.length === 0) { showMessage('JSON 数据为空', 'error'); return; }
+
+                // Build column schema
+                schemaNodeIndex = 0;
+                columnSchema = buildColumnSchema(jsonData);
+
+                const allPaths = getAllPaths(columnSchema);
+                const hasNested = allPaths.some(p => p.includes('.') || p.includes('['));
+
+                // Get default fields
+                const defaultFieldsInput = document.getElementById('defaultFields').value.trim();
+                if (defaultFieldsInput) {
+                    const specifiedPaths = defaultFieldsInput.split(',').map(f => f.trim()).filter(f => f);
+                    visiblePaths = new Set();
+                    specifiedPaths.forEach(sp => {
+                        if (allPaths.includes(sp)) {
+                            const node = findNodeByPath(columnSchema, sp);
+                            if (node) getAllPaths([node]).forEach(p => visiblePaths.add(p));
+                        }
+                    });
+                } else {
+                    visiblePaths = new Set(allPaths);
+                    document.getElementById('defaultFields').value = allPaths.join(', ');
+                }
+
+                defaultPaths = [...visiblePaths];
+                updateSchemaVisibility(columnSchema);
+                ensureParentVisibility(columnSchema);
+
+                // Update table title
+                const tableTitle = document.getElementById('tableTitle').value.trim() || '数据表格';
+                document.getElementById('tableHeaderTitle').textContent = tableTitle;
+                document.getElementById('fullscreenTitle').textContent = tableTitle;
+
+                // Update data count
+                const countText = `${jsonData.length} 条`;
+                document.getElementById('dataCount').textContent = countText;
+                document.getElementById('dataCountFullscreen').textContent = countText;
+
+                renderTreeColumnSettings();
+                renderView();
+                updateViewToggleVisibility();
+
+                showMessage(`成功解析 ${jsonData.length} 条数据${hasNested ? '（检测到嵌套结构）' : ''}`, 'success');
+                setTimeout(() => { messageEl.style.display = 'none'; }, 3000);
+            } catch (error) {
+                showMessage(`解析失败: ${error.message}`, 'error');
+            }
+        }
+
+        // ===== Schema Building =====
+        function buildColumnSchema(data) {
+            if (Array.isArray(data)) {
+                if (data.length > 0 && data.every(item => item !== null && typeof item === 'object' && !Array.isArray(item))) {
+                    const merged = deepMergeObjects(data);
+                    return buildObjectChildren(merged, '');
+                }
+                return [];
+            }
+            if (typeof data === 'object' && data !== null) {
+                return buildObjectChildren(data, '');
+            }
+            return [];
+        }
+
+        function deepMergeObjects(objects) {
+            const result = {};
+            for (const obj of objects) {
+                if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
+                for (const key of Object.keys(obj)) {
+                    if (result[key] === undefined) {
+                        result[key] = obj[key];
+                    } else if (result[key] !== null && obj[key] !== null &&
+                               typeof result[key] === 'object' && typeof obj[key] === 'object') {
+                        if (Array.isArray(result[key]) && Array.isArray(obj[key])) {
+                            result[key] = [...result[key], ...obj[key]];
+                        } else if (!Array.isArray(result[key]) && !Array.isArray(obj[key])) {
+                            result[key] = deepMergeObjects([result[key], obj[key]]);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+        function buildObjectChildren(obj, parentPath) {
+            return Object.keys(obj).map(key => {
+                const val = obj[key];
+                const path = parentPath ? `${parentPath}.${key}` : key;
+                const idx = schemaNodeIndex++;
+
+                if (val === null || val === undefined || typeof val !== 'object') {
+                    return { path, label: key, type: 'primitive', children: [], visible: true, extractPath: path, idx };
+                }
+
+                if (Array.isArray(val)) {
+                    const allObj = val.length > 0 && val.every(item => item !== null && typeof item === 'object' && !Array.isArray(item));
+                    if (allObj) {
+                        const merged = deepMergeObjects(val);
+                        const children = buildArrayItemChildren(merged, path);
+                        return { path, label: key, type: 'array', children, visible: true, extractPath: path, idx, arrayLength: val.length };
+                    }
+                    return { path, label: key, type: 'array-primitive', children: [], visible: true, extractPath: path, idx, arrayLength: val.length };
+                }
+
+                const children = buildObjectChildren(val, path);
+                return { path, label: key, type: 'object', children, visible: true, extractPath: path, idx };
+            });
+        }
+
+        function buildArrayItemChildren(obj, arrayPath) {
+            return Object.keys(obj).map(key => {
+                const val = obj[key];
+                const bracketPath = `${arrayPath}[${key}]`;
+                const idx = schemaNodeIndex++;
+
+                if (val === null || val === undefined || typeof val !== 'object') {
+                    return { path: bracketPath, label: key, type: 'primitive', children: [], visible: true, extractPath: key, idx };
+                }
+
+                if (Array.isArray(val)) {
+                    const allObj = val.length > 0 && val.every(item => item !== null && typeof item === 'object' && !Array.isArray(item));
+                    if (allObj) {
+                        const merged = deepMergeObjects(val);
+                        const children = buildArrayItemChildren(merged, bracketPath);
+                        return { path: bracketPath, label: key, type: 'array', children, visible: true, extractPath: key, idx, arrayLength: val.length };
+                    }
+                    return { path: bracketPath, label: key, type: 'array-primitive', children: [], visible: true, extractPath: key, idx, arrayLength: val.length };
+                }
+
+                const children = buildObjectInArrayChildren(val, bracketPath, key);
+                return { path: bracketPath, label: key, type: 'object', children, visible: true, extractPath: key, idx };
+            });
+        }
+
+        function buildObjectInArrayChildren(obj, parentBracketPath, parentExtractPath) {
+            return Object.keys(obj).map(key => {
+                const val = obj[key];
+                const path = `${parentBracketPath}.${key}`;
+                const extractPath = `${parentExtractPath}.${key}`;
+                const idx = schemaNodeIndex++;
+
+                if (val === null || val === undefined || typeof val !== 'object') {
+                    return { path, label: key, type: 'primitive', children: [], visible: true, extractPath, idx };
+                }
+
+                if (Array.isArray(val)) {
+                    const allObj = val.length > 0 && val.every(item => item !== null && typeof item === 'object' && !Array.isArray(item));
+                    if (allObj) {
+                        const merged = deepMergeObjects(val);
+                        const children = buildArrayItemChildren(merged, path);
+                        return { path, label: key, type: 'array', children, visible: true, extractPath, idx, arrayLength: val.length };
+                    }
+                    return { path, label: key, type: 'array-primitive', children: [], visible: true, extractPath, idx, arrayLength: val.length };
+                }
+
+                const children = buildObjectInArrayChildren(val, path, extractPath);
+                return { path, label: key, type: 'object', children, visible: true, extractPath, idx };
+            });
+        }
+
+        // ===== Schema Utilities =====
+        function getAllPaths(nodes) {
+            const paths = [];
+            for (const node of nodes) {
+                paths.push(node.path);
+                if (node.children.length > 0) paths.push(...getAllPaths(node.children));
+            }
+            return paths;
+        }
+
+        function getLeafNodes(nodes) {
+            const leaves = [];
+            for (const node of nodes) {
+                if (!node.visible) continue;
+                if (node.type === 'primitive' || node.type === 'array' || node.type === 'array-primitive') {
+                    leaves.push(node);
+                } else if (node.type === 'object') {
+                    leaves.push(...getLeafNodes(node.children));
+                }
+            }
+            return leaves;
+        }
+
+        function countVisibleLeaves(node) {
+            if (!node.visible) return 0;
+            if (node.type === 'primitive' || node.type === 'array' || node.type === 'array-primitive') return 1;
+            if (node.type === 'object') return node.children.reduce((sum, c) => sum + countVisibleLeaves(c), 0);
+            return 0;
+        }
+
+        function getMaxHeaderDepth(nodes) {
+            let max = 1;
+            for (const node of nodes) {
+                if (!node.visible) continue;
+                if (node.type === 'object' && node.children.some(c => c.visible)) {
+                    max = Math.max(max, 1 + getMaxHeaderDepth(node.children));
+                }
+            }
+            return max;
+        }
+
+        function updateSchemaVisibility(nodes) {
+            for (const node of nodes) {
+                node.visible = visiblePaths.has(node.path);
+                if (node.children.length > 0) updateSchemaVisibility(node.children);
+            }
+        }
+
+        function ensureParentVisibility(nodes) {
+            for (const node of nodes) {
+                if (node.children.length > 0) {
+                    ensureParentVisibility(node.children);
+                    const anyChildVisible = node.children.some(c => c.visible);
+                    if (anyChildVisible && !node.visible) {
+                        visiblePaths.add(node.path);
+                        node.visible = true;
+                    }
+                    if (!anyChildVisible && node.visible) {
+                        visiblePaths.delete(node.path);
+                        node.visible = false;
+                    }
+                }
+            }
+        }
+
+        function findNodeByPath(nodes, path) {
+            for (const node of nodes) {
+                if (node.path === path) return node;
+                if (node.children.length > 0) {
+                    const found = findNodeByPath(node.children, path);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function findNodeByIdx(nodes, idx) {
+            for (const node of nodes) {
+                if (node.idx === idx) return node;
+                if (node.children.length > 0) {
+                    const found = findNodeByIdx(node.children, idx);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        // ===== Value Extraction =====
+        function getValueByPath(obj, path) {
+            if (!obj || !path) return undefined;
+            const parts = path.split('.');
+            let current = obj;
+            for (const part of parts) {
+                if (current === null || current === undefined) return undefined;
+                current = current[part];
+            }
+            return current;
+        }
+
+        // ===== Table Rendering =====
+        function renderView() {
+            if (detectNested(jsonData)) {
+                if (currentViewMode === 'horizontal') {
+                    renderHorizontalNestedView();
+                } else {
+                    renderNestedView();
+                }
+            } else {
+                renderUnifiedTable();
+            }
+            restoreExpandState();
+            requestAnimationFrame(updateStickyHeaders);
+        }
+
+        // ===== View Mode Toggle =====
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+            updateViewModeToggleUI();
+            if (jsonData.length > 0) {
+                renderView();
+            }
+        }
+
+        function updateViewModeToggleUI() {
+            var btnH = document.getElementById('btnHorizontal');
+            var btnV = document.getElementById('btnVertical');
+            if (btnH) btnH.classList.toggle('active', currentViewMode === 'horizontal');
+            if (btnV) btnV.classList.toggle('active', currentViewMode === 'vertical');
+            updateViewToggleVisibility();
+        }
+
+        function updateViewToggleVisibility() {
+            var toggle = document.getElementById('viewModeToggle');
+            if (toggle) {
+                toggle.style.display = (jsonData.length > 0 && detectNested(jsonData)) ? 'flex' : 'none';
+            }
+        }
+
+        // ===== Nested View Rendering =====
+        function renderNestedView() {
+            const container = document.getElementById('tableContainer');
+            const fullscreenContainer = document.getElementById('fullscreenTableContainer');
+
+            if (!rawParsedData || columnSchema.length === 0) {
+                const emptyHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">暂无数据</div><div class="empty-hint">请在上方粘贴 JSON 数据并点击"解析数据"按钮</div></div>';
+                container.innerHTML = emptyHTML;
+                fullscreenContainer.innerHTML = emptyHTML;
+                return;
+            }
+
+            const visibleSchema = columnSchema.filter(function(n) { return n.visible; });
+            if (visibleSchema.length === 0) {
+                const emptyHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">未选择任何列</div><div class="empty-hint">请在列设置中选择要显示的字段</div></div>';
+                container.innerHTML = emptyHTML;
+                fullscreenContainer.innerHTML = emptyHTML;
+                return;
+            }
+
+            const html = jsonData.map(function(row, idx) { return renderRootRowCard(row, visibleSchema, idx); }).join('');
+            container.innerHTML = html;
+            fullscreenContainer.innerHTML = html;
+        }
+
+        // ===== Horizontal Nested View (referencing jsonview_row.html style) =====
+        function renderHorizontalNestedView() {
+            var container = document.getElementById('tableContainer');
+            var fullscreenContainer = document.getElementById('fullscreenTableContainer');
+
+            if (!rawParsedData || columnSchema.length === 0) {
+                var emptyHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">暂无数据</div><div class="empty-hint">请在上方粘贴 JSON 数据并点击"解析数据"按钮</div></div>';
+                container.innerHTML = emptyHTML;
+                fullscreenContainer.innerHTML = emptyHTML;
+                return;
+            }
+
+            var visibleSchema = columnSchema.filter(function(n) { return n.visible; });
+            if (visibleSchema.length === 0) {
+                var emptyHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">未选择任何列</div><div class="empty-hint">请在列设置中选择要显示的字段</div></div>';
+                container.innerHTML = emptyHTML;
+                fullscreenContainer.innerHTML = emptyHTML;
+                return;
+            }
+
+            var html = renderHArrayOfObjects(jsonData, visibleSchema, 0, 'h');
+            container.innerHTML = html;
+            fullscreenContainer.innerHTML = html;
+        }
+
+        function renderHArrayOfObjects(arr, schemaNodes, depth, ctx) {
+            var ed = depth % 6;
+            var cd = (depth + 1) % 6;
+
+            var ths = schemaNodes.map(function(n) {
+                var badge = getHSchemaBadge(n);
+                return '<th>' + escapeHTML(n.label) + badge + '</th>';
+            }).join('');
+
+            var rows = arr.map(function(item, ri) {
+                var tds = schemaNodes.map(function(n) {
+                    var val = item != null ? item[n.label] : undefined;
+                    var cellCtx = (ctx || 'h') + '_r' + ri + '_' + safeId(n.label);
+                    return '<td>' + renderHCellValue(val, cellCtx, n, depth, cd) + '</td>';
+                }).join('');
+                return '<tr>' + tds + '</tr>';
+            }).join('');
+
+            return '<table class="arr-row-table nested-depth-' + ed + '">' +
+                '<thead><tr>' + ths + '</tr></thead>' +
+                '<tbody>' + rows + '</tbody></table>';
+        }
+
+        function getHSchemaBadge(node) {
+            if (node.type === 'object') return ' <span class="th-badge th-badge-obj">{...}</span>';
+            if (node.type === 'array') return ' <span class="th-badge th-badge-arr">[' + (node.arrayLength != null ? node.arrayLength : '') + ']</span>';
+            if (node.type === 'array-primitive') return ' <span class="th-badge th-badge-arr">[' + (node.arrayLength != null ? node.arrayLength : '') + ']</span>';
+            return '';
+        }
+
+        function renderHCellValue(val, ctx, schemaNode, depth, childDepth) {
+            if (val === null || val === undefined || typeof val !== 'object') {
+                return renderPrimitive(val);
+            }
+
+            var cid = ctx;
+            var label, bodyHTML;
+
+            if (Array.isArray(val)) {
+                label = val.length + ' 项';
+                var allObj = val.length > 0 && val.every(function(item) {
+                    return item !== null && typeof item === 'object' && !Array.isArray(item);
+                });
+                if (allObj) {
+                    if (schemaNode && schemaNode.type === 'array' && schemaNode.children.length > 0) {
+                        var vc = schemaNode.children.filter(function(c) { return c.visible; });
+                        bodyHTML = vc.length > 0
+                            ? renderHArrayOfObjects(val, vc, depth + 1, ctx + '_arr')
+                            : renderHArrayOfObjectsAuto(val, depth + 1, ctx + '_arr');
+                    } else {
+                        bodyHTML = renderHArrayOfObjectsAuto(val, depth + 1, ctx + '_arr');
+                    }
+                } else {
+                    bodyHTML = renderHPrimitiveArrayNested(val, depth + 1, childDepth, ctx + '_parr');
+                }
+            } else {
+                var keys = Object.keys(val);
+                label = keys.length + ' 个属性';
+                if (schemaNode && schemaNode.type === 'object' && schemaNode.children.length > 0) {
+                    var vc2 = schemaNode.children.filter(function(c) { return c.visible; });
+                    bodyHTML = vc2.length > 0
+                        ? renderHSingleObject(val, vc2, depth + 1, ctx + '_obj')
+                        : renderHSingleObjectAuto(val, depth + 1, ctx + '_obj');
+                } else {
+                    bodyHTML = renderHSingleObjectAuto(val, depth + 1, ctx + '_obj');
+                }
+            }
+
+            return '<div class="cell-nested" onclick="toggleCollapse(event, \'' + cid + '\')">' +
+                '<span class="cell-expand-btn" id="icon_' + cid + '">▶</span>' +
+                '<span class="cell-expand-label">' + label + '</span></div>' +
+            '<div class="cell-nested-body collapsed-content nested-depth-' + childDepth + '" id="content_' + cid + '">' + bodyHTML + '</div>';
+        }
+
+        function renderHSingleObject(obj, schemaNodes, depth, ctx) {
+            var ed = depth % 6;
+            var cd = (depth + 1) % 6;
+
+            var ths = schemaNodes.map(function(n) {
+                var badge = getHSchemaBadge(n);
+                return '<th>' + escapeHTML(n.label) + badge + '</th>';
+            }).join('');
+
+            var tds = schemaNodes.map(function(n) {
+                var val = obj != null ? obj[n.label] : undefined;
+                var cellCtx = (ctx || 'hso') + '_' + safeId(n.label);
+                return '<td>' + renderHCellValue(val, cellCtx, n, depth, cd) + '</td>';
+            }).join('');
+
+            return '<table class="arr-row-table nested-depth-' + ed + '">' +
+                '<thead><tr>' + ths + '</tr></thead>' +
+                '<tbody><tr>' + tds + '</tr></tbody></table>';
+        }
+
+        function renderHArrayOfObjectsAuto(arr, depth, ctx) {
+            var ed = depth % 6;
+            var cd = (depth + 1) % 6;
+            var keySet = new Set();
+            arr.forEach(function(item) {
+                if (item && typeof item === 'object' && !Array.isArray(item)) {
+                    Object.keys(item).forEach(function(k) { keySet.add(k); });
+                }
+            });
+            var cols = Array.from(keySet);
+
+            var ths = cols.map(function(col) {
+                var sampleItem = arr.find(function(item) { return item[col] !== undefined; });
+                var badge = '';
+                if (sampleItem) {
+                    var sv = sampleItem[col];
+                    if (sv !== null && typeof sv === 'object') {
+                        badge = Array.isArray(sv)
+                            ? '<span class="th-badge th-badge-arr">[' + sv.length + ']</span>'
+                            : '<span class="th-badge th-badge-obj">{' + Object.keys(sv).length + '}</span>';
+                    }
+                }
+                return '<th>' + escapeHTML(col) + badge + '</th>';
+            }).join('');
+
+            var rows = arr.map(function(item, ri) {
+                var tds = cols.map(function(col) {
+                    var val = item[col];
+                    if (val === undefined) return '<td style="color:var(--text-secondary);">—</td>';
+                    if (val === null || typeof val !== 'object') return '<td>' + renderPrimitive(val) + '</td>';
+                    var cellCtx = (ctx || 'haoa') + '_r' + ri + '_' + safeId(col);
+                    return '<td>' + renderHCellValue(val, cellCtx, null, depth, cd) + '</td>';
+                }).join('');
+                return '<tr>' + tds + '</tr>';
+            }).join('');
+
+            return '<table class="arr-row-table nested-depth-' + ed + '">' +
+                '<thead><tr>' + ths + '</tr></thead>' +
+                '<tbody>' + rows + '</tbody></table>';
+        }
+
+        function renderHSingleObjectAuto(obj, depth, ctx) {
+            var keys = Object.keys(obj);
+            var ed = depth % 6;
+            var cd = (depth + 1) % 6;
+
+            var ths = keys.map(function(k) {
+                var val = obj[k];
+                var badge = '';
+                if (val !== null && typeof val === 'object') {
+                    badge = Array.isArray(val)
+                        ? '<span class="th-badge th-badge-arr">[' + val.length + ']</span>'
+                        : '<span class="th-badge th-badge-obj">{' + Object.keys(val).length + '}</span>';
+                }
+                return '<th>' + escapeHTML(k) + badge + '</th>';
+            }).join('');
+
+            var tds = keys.map(function(k) {
+                var val = obj[k];
+                var cellCtx = (ctx || 'hsoa') + '_' + safeId(k);
+                return '<td>' + renderHCellValue(val, cellCtx, null, depth, cd) + '</td>';
+            }).join('');
+
+            return '<table class="arr-row-table nested-depth-' + ed + '">' +
+                '<thead><tr>' + ths + '</tr></thead>' +
+                '<tbody><tr>' + tds + '</tr></tbody></table>';
+        }
+
+        function renderHPrimitiveArrayNested(arr, depth, childDepth, ctx) {
+            var ed = depth % 6;
+            var rows = arr.map(function(item, idx) {
+                var valHTML;
+                if (item !== null && typeof item === 'object') {
+                    if (Array.isArray(item)) {
+                        var itemCtx = (ctx || 'hpan') + '_i' + idx;
+                        valHTML = renderHCellValue(item, itemCtx, null, depth, childDepth);
+                    } else {
+                        valHTML = renderHSingleObjectAuto(item, depth + 1, (ctx || 'hpan') + '_i' + idx);
+                    }
+                } else {
+                    valHTML = renderPrimitive(item);
+                }
+                return '<tr><td class="nested-key-cell" style="width:60px;text-align:center;"><span class="arr-row-index">#' + idx + '</span></td><td>' + valHTML + '</td></tr>';
+            }).join('');
+            return '<table class="nested-table nested-depth-' + ed + '"><tbody>' + rows + '</tbody></table>';
+        }
+
+        function renderRootRowCard(obj, schemaNodes, index) {
+            var uid = 'v_r' + index;
+
+            // Find a representative label for the card header
+            var labelNode = schemaNodes.find(function(n) { return n.type === 'primitive' && n.visible; });
+            var headerLabel = '#' + (index + 1);
+            if (labelNode) {
+                var v = obj != null ? obj[labelNode.label] : undefined;
+                if (v !== undefined && v !== null) headerLabel = String(v);
+            }
+
+            var visibleNodes = schemaNodes.filter(function(n) { return n.visible; });
+            var bodyRows = renderNestedKeyValues(obj, visibleNodes, 0, 'v_r' + index);
+
+            return '<div class="root-row nested-depth-0">' +
+                '<div class="root-row-header" onclick="toggleCollapse(event, \'' + uid + '\')">' +
+                    '<span class="root-row-icon" id="icon_' + uid + '">▼</span>' +
+                    '<span class="root-row-key">' + escapeHTML(headerLabel) + '</span>' +
+                    '<span class="root-row-badge root-row-badge-obj">对象</span>' +
+                    '<span class="root-row-summary">' + visibleNodes.length + ' 个字段</span>' +
+                '</div>' +
+                '<div class="root-row-body" id="content_' + uid + '">' +
+                    '<div class="root-row-body-inner">' +
+                        '<table class="nested-table nested-depth-0"><tbody>' + bodyRows + '</tbody></table>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function renderNestedKeyValues(obj, nodes, depth, ctx) {
+            if (!obj || typeof obj !== 'object') return '';
+
+            return nodes.map(function(node) {
+                var val = obj != null ? obj[node.label] : undefined;
+                var childDepth = (depth + 1) % 6;
+                var nodeCtx = (ctx || 'v') + '_' + safeId(node.label);
+
+                if (node.type === 'primitive') {
+                    return '<tr><td class="nested-key">' + escapeHTML(node.label) + '</td>' +
+                        '<td class="nested-value">' + renderPrimitive(val) + '</td></tr>';
+                }
+
+                if (node.type === 'object') {
+                    var visibleChildren = node.children.filter(function(c) { return c.visible; });
+                    if (visibleChildren.length === 0) return '';
+
+                    var uid = nodeCtx;
+                    var childRows = renderNestedKeyValues(val || {}, visibleChildren, depth + 1, nodeCtx);
+                    var subTable = '<div class="nested-subtable-wrap nested-depth-' + childDepth + '">' +
+                        '<table class="nested-table nested-depth-' + childDepth + '"><tbody>' + childRows + '</tbody></table></div>';
+
+                    return '<tr><td class="nested-key">' + escapeHTML(node.label) + ' <span class="key-badge badge-obj">{...}</span></td>' +
+                        '<td class="nested-value">' +
+                            '<div class="collapse-toggle" onclick="toggleCollapse(event, \'' + uid + '\')">' +
+                                '<span class="collapse-icon collapsed" id="icon_' + uid + '">▼</span>' +
+                                '<span style="font-size:12px;color:var(--text-secondary)">' + visibleChildren.length + ' 个字段</span>' +
+                            '</div>' +
+                            '<div id="content_' + uid + '" class="collapsed-content">' + subTable + '</div>' +
+                        '</td></tr>';
+                }
+
+                if (node.type === 'array') {
+                    var arr = val;
+                    var count = arr ? arr.length : 0;
+                    var visibleChildren2 = node.children.filter(function(c) { return c.visible; });
+                    var uid2 = nodeCtx;
+                    var arrContent = '';
+                    if (arr && arr.length > 0 && visibleChildren2.length > 0) {
+                        arrContent = renderNestedArrayItems(arr, visibleChildren2, childDepth, nodeCtx);
+                    } else if (count === 0) {
+                        arrContent = '<span class="primitive-value null-value">[]</span>';
+                    } else {
+                        arrContent = '<span style="font-size:12px;color:var(--text-secondary)">无可显示字段</span>';
+                    }
+
+                    return '<tr><td class="nested-key">' + escapeHTML(node.label) + ' <span class="key-badge badge-arr">[' + count + ']</span></td>' +
+                        '<td class="nested-value">' +
+                            '<div class="collapse-toggle" onclick="toggleCollapse(event, \'' + uid2 + '\')">' +
+                                '<span class="collapse-icon collapsed" id="icon_' + uid2 + '">▼</span>' +
+                                '<span style="font-size:12px;color:var(--text-secondary)">' + count + ' 项</span>' +
+                            '</div>' +
+                            '<div id="content_' + uid2 + '" class="collapsed-content">' + arrContent + '</div>' +
+                        '</td></tr>';
+                }
+
+                if (node.type === 'array-primitive') {
+                    var arr2 = val;
+                    var count2 = arr2 ? arr2.length : 0;
+                    var uid3 = nodeCtx;
+                    var arrContent2 = '';
+                    if (arr2 && arr2.length > 0) {
+                        arrContent2 = '<div class="nested-subtable-wrap nested-depth-' + childDepth + '">' +
+                            '<table class="nested-table nested-depth-' + childDepth + '"><tbody>' +
+                            arr2.map(function(item, idx) {
+                                return '<tr><td class="nested-key" style="width:60px;text-align:center"><span class="array-index">#' + idx + '</span></td>' +
+                                    '<td class="nested-value">' + renderPrimitive(item) + '</td></tr>';
+                            }).join('') +
+                            '</tbody></table></div>';
+                    } else {
+                        arrContent2 = '<span class="primitive-value null-value">[]</span>';
+                    }
+
+                    return '<tr><td class="nested-key">' + escapeHTML(node.label) + ' <span class="key-badge badge-arr">[' + count2 + ']</span></td>' +
+                        '<td class="nested-value">' +
+                            '<div class="collapse-toggle" onclick="toggleCollapse(event, \'' + uid3 + '\')">' +
+                                '<span class="collapse-icon collapsed" id="icon_' + uid3 + '">▼</span>' +
+                                '<span style="font-size:12px;color:var(--text-secondary)">' + count2 + ' 项</span>' +
+                            '</div>' +
+                            '<div id="content_' + uid3 + '" class="collapsed-content">' + arrContent2 + '</div>' +
+                        '</td></tr>';
+                }
+
+                return '';
+            }).join('');
+        }
+
+        function renderNestedArrayItems(arr, visibleChildren, depth, ctx) {
+            var depthClass = 'nested-depth-' + (depth % 6);
+
+            return arr.map(function(item, idx) {
+                var uid = (ctx || 'vai') + '_i' + idx;
+
+                // Find a representative label for the array item
+                var labelNode = visibleChildren.find(function(n) { return n.type === 'primitive'; });
+                var headerLabel = '#' + (idx + 1);
+                if (labelNode && item) {
+                    var v = item != null ? item[labelNode.label] : undefined;
+                    if (v !== undefined && v !== null) headerLabel = String(v);
+                }
+
+                var bodyRows = renderNestedKeyValues(item, visibleChildren, depth, uid);
+
+                return '<div class="root-row ' + depthClass + '">' +
+                    '<div class="root-row-header" onclick="toggleCollapse(event, \'' + uid + '\')">' +
+                        '<span class="root-row-icon" id="icon_' + uid + '">▼</span>' +
+                        '<span class="root-row-key">' + escapeHTML(headerLabel) + '</span>' +
+                        '<span class="root-row-badge root-row-badge-arr">数组项</span>' +
+                        '<span class="root-row-summary">' + visibleChildren.length + ' 个字段</span>' +
+                    '</div>' +
+                    '<div class="root-row-body" id="content_' + uid + '">' +
+                        '<div class="root-row-body-inner">' +
+                            '<table class="nested-table ' + depthClass + '"><tbody>' + bodyRows + '</tbody></table>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function renderUnifiedTable() {
+            const container = document.getElementById('tableContainer');
+            const fullscreenContainer = document.getElementById('fullscreenTableContainer');
+
+            if (!rawParsedData || columnSchema.length === 0) {
+                const emptyHTML = `<div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-text">暂无数据</div>
+                    <div class="empty-hint">请在上方粘贴 JSON 数据并点击"解析数据"按钮</div>
+                </div>`;
+                container.innerHTML = emptyHTML;
+                fullscreenContainer.innerHTML = emptyHTML;
+                return;
+            }
+
+            const visibleSchema = columnSchema.filter(n => n.visible);
+            const leafNodes = getLeafNodes(visibleSchema);
+
+            if (leafNodes.length === 0) {
+                const emptyHTML = `<div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <div class="empty-text">未选择任何列</div>
+                    <div class="empty-hint">请在列设置中选择要显示的字段</div>
+                </div>`;
+                container.innerHTML = emptyHTML;
+                fullscreenContainer.innerHTML = emptyHTML;
+                return;
+            }
+
+            const maxDepth = getMaxHeaderDepth(visibleSchema);
+
+            // Build header rows
+            const headerRows = [];
+            for (let d = 0; d < maxDepth; d++) headerRows.push([]);
+            buildHeaderCells(visibleSchema, 0, maxDepth, headerRows);
+
+            // Render thead
+            const theadHTML = headerRows.map(row => {
+                const cells = row.map(cell => {
+                    let attrs = '';
+                    if (cell.colspan > 1) attrs += ` colspan="${cell.colspan}"`;
+                    if (cell.rowspan > 1) attrs += ` rowspan="${cell.rowspan}"`;
+                    let badge = '';
+                    let cls = '';
+                    if (cell.nodeType === 'array' || cell.nodeType === 'array-primitive') {
+                        badge = ' <span class="th-badge th-badge-arr">[' + (cell.arrayLength != null ? cell.arrayLength : '') + ']</span>';
+                        cls = ' class="array-header"';
+                    } else if (cell.nodeType === 'group') {
+                        cls = ' class="group-header"';
+                    }
+                    return `<th${attrs}${cls}>${escapeHTML(cell.label)}${badge}</th>`;
+                }).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+
+            // Render tbody
+            const tbodyHTML = jsonData.map(row => {
+                const cells = leafNodes.map(node => {
+                    const val = getValueByPath(row, node.extractPath);
+                    if (node.type === 'array') {
+                        return `<td>${renderArrayCell(val, node, 0)}</td>`;
+                    }
+                    if (node.type === 'array-primitive') {
+                        return `<td>${renderPrimitiveArrayCell(val, 0)}</td>`;
+                    }
+                    return `<td>${formatValue(val)}</td>`;
+                }).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+
+            const tableHTML = `<table class="data-table"><thead>${theadHTML}</thead><tbody>${tbodyHTML}</tbody></table>`;
+            container.innerHTML = tableHTML;
+            fullscreenContainer.innerHTML = tableHTML;
+        }
+
+        function buildHeaderCells(nodes, depth, maxDepth, rows) {
+            for (const node of nodes) {
+                if (!node.visible) continue;
+
+                if (node.type === 'object' && node.children.some(c => c.visible)) {
+                    const vl = countVisibleLeaves(node);
+                    if (vl > 0) {
+                        rows[depth].push({ label: node.label, colspan: vl, rowspan: 1, nodeType: 'group' });
+                        buildHeaderCells(node.children, depth + 1, maxDepth, rows);
+                    }
+                } else if (node.type === 'array' || node.type === 'array-primitive') {
+                    rows[depth].push({ label: node.label, colspan: 1, rowspan: maxDepth - depth, nodeType: node.type, arrayLength: node.arrayLength });
+                } else {
+                    rows[depth].push({ label: node.label, colspan: 1, rowspan: maxDepth - depth, nodeType: 'primitive' });
+                }
+            }
+        }
+
+        function renderArrayCell(arr, schemaNode, depth) {
+            if (!arr || !Array.isArray(arr)) return formatValue(arr);
+            if (arr.length === 0) return '<span class="primitive-value null-value">[]</span>';
+
+            const uid = 'ac_' + Math.random().toString(36).substr(2, 8);
+            const label = `${arr.length} 项`;
+            const childDepth = (depth + 1) % 6;
+
+            const visibleChildren = schemaNode.children.filter(c => c.visible);
+
+            if (visibleChildren.length === 0) {
+                return `<div class="cell-nested" onclick="toggleCollapse(event, '${uid}')">
+                    <span class="cell-expand-btn" id="icon_${uid}">▶</span>
+                    <span class="cell-expand-label">${label}</span>
+                </div>
+                <div class="cell-nested-body collapsed-content nested-depth-${childDepth}" id="content_${uid}">
+                    <div style="padding: 12px; color: var(--text-secondary); font-size: 12px;">未选择可见列，请在列设置中开启</div>
+                </div>`;
+            }
+
+            const childLeaves = getLeafNodes(visibleChildren);
+            const maxSubDepth = getMaxHeaderDepth(visibleChildren);
+
+            // Build sub-table headers
+            const subHeaderRows = [];
+            for (let d = 0; d < maxSubDepth; d++) subHeaderRows.push([]);
+            buildHeaderCells(visibleChildren, 0, maxSubDepth, subHeaderRows);
+
+            const theadHTML = subHeaderRows.map(row => {
+                const cells = row.map(cell => {
+                    let attrs = '';
+                    if (cell.colspan > 1) attrs += ` colspan="${cell.colspan}"`;
+                    if (cell.rowspan > 1) attrs += ` rowspan="${cell.rowspan}"`;
+                    let badge = '';
+                    if (cell.nodeType === 'array' || cell.nodeType === 'array-primitive') {
+                        badge = ' <span class="th-badge th-badge-arr">[' + (cell.arrayLength != null ? cell.arrayLength : '') + ']</span>';
+                    }
+                    return `<th${attrs}>${escapeHTML(cell.label)}${badge}</th>`;
+                }).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+
+            const tbodyHTML = arr.map(item => {
+                const cells = childLeaves.map(leaf => {
+                    const val = getValueByPath(item, leaf.extractPath);
+                    if (leaf.type === 'array') {
+                        return `<td>${renderArrayCell(val, leaf, depth + 1)}</td>`;
+                    }
+                    if (leaf.type === 'array-primitive') {
+                        return `<td>${renderPrimitiveArrayCell(val, depth + 1)}</td>`;
+                    }
+                    return `<td>${formatValue(val)}</td>`;
+                }).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+
+            const bodyHTML = `<table class="arr-row-table nested-depth-${childDepth}"><thead>${theadHTML}</thead><tbody>${tbodyHTML}</tbody></table>`;
+
+            return `<div class="cell-nested" onclick="toggleCollapse(event, '${uid}')">
+                <span class="cell-expand-btn" id="icon_${uid}">▶</span>
+                <span class="cell-expand-label">${label}</span>
+            </div>
+            <div class="cell-nested-body collapsed-content nested-depth-${childDepth}" id="content_${uid}">${bodyHTML}</div>`;
+        }
+
+        function renderPrimitiveArrayCell(arr, depth) {
+            if (!arr || !Array.isArray(arr)) return formatValue(arr);
+            if (arr.length === 0) return '<span class="primitive-value null-value">[]</span>';
+
+            const uid = 'pac_' + Math.random().toString(36).substr(2, 8);
+            const label = `${arr.length} 项`;
+            const childDepth = (depth + 1) % 6;
+
+            const bodyHTML = `<table class="nested-table nested-depth-${childDepth}"><tbody>${arr.map((item, idx) =>
+                `<tr><td class="nested-key-cell" style="width:60px;text-align:center;"><span class="arr-row-index">#${idx}</span></td><td>${renderPrimitive(item)}</td></tr>`
+            ).join('')}</tbody></table>`;
+
+            return `<div class="cell-nested" onclick="toggleCollapse(event, '${uid}')">
+                <span class="cell-expand-btn" id="icon_${uid}">▶</span>
+                <span class="cell-expand-label">${label}</span>
+            </div>
+            <div class="cell-nested-body collapsed-content nested-depth-${childDepth}" id="content_${uid}">${bodyHTML}</div>`;
+        }
+
+        function updateStickyHeaders() {
+            document.querySelectorAll('.data-table').forEach(table => {
+                const headerRows = table.querySelectorAll('thead tr');
+                let cumHeight = 0;
+                headerRows.forEach((row) => {
+                    const ths = row.querySelectorAll('th');
+                    const rowHeight = row.getBoundingClientRect().height;
+                    if (rowHeight > 0) {
+                        ths.forEach(th => { th.style.top = cumHeight + 'px'; });
+                        cumHeight += rowHeight;
+                    }
+                });
+            });
+        }
+
+        // ===== Column Settings =====
+        function renderTreeColumnSettings() {
+            const html = renderFlatColumnNodes(columnSchema);
+            document.getElementById('columnList').innerHTML = html;
+            document.getElementById('columnListFullscreen').innerHTML = html;
+        }
+
+        function renderFlatColumnNodes(nodes) {
+            const flatItems = flattenSchemaNodes(nodes);
+            return flatItems.map(item => {
+                const checked = item.visible ? 'checked' : '';
+                let typeHint = '';
+                if (item.type === 'object') typeHint = '<span class="col-type-hint">{...}</span>';
+                else if (item.type === 'array') typeHint = '<span class="col-type-hint">[...]</span>';
+                else if (item.type === 'array-primitive') typeHint = '<span class="col-type-hint">[]</span>';
+
+                return `<div class="column-tree-item" style="padding-left: 8px;">
+                    <input type="checkbox" data-idx="${item.idx}" ${checked} onchange="togglePathVisibility(${item.idx})">
+                    <label onclick="this.previousElementSibling.click()" title="${escapeHTML(item.path)}">${escapeHTML(item.path)} ${typeHint}</label>
+                </div>`;
+            }).join('');
+        }
+
+        function flattenSchemaNodes(nodes) {
+            const result = [];
+            for (const node of nodes) {
+                result.push(node);
+                if (node.children.length > 0) {
+                    result.push(...flattenSchemaNodes(node.children));
+                }
+            }
+            return result;
+        }
+
+        function togglePathVisibility(idx) {
+            const node = findNodeByIdx(columnSchema, idx);
+            if (!node) return;
+
+            const newVisible = !node.visible;
+            const descendantPaths = getAllPaths([node]);
+
+            if (newVisible) {
+                descendantPaths.forEach(p => visiblePaths.add(p));
+            } else {
+                descendantPaths.forEach(p => visiblePaths.delete(p));
+            }
+
+            updateSchemaVisibility(columnSchema);
+            ensureParentVisibility(columnSchema);
+
+            renderTreeColumnSettings();
+            renderView();
+        }
+
+        function updateParentCheckboxStates() {
+            function process(nodes) {
+                for (const node of nodes) {
+                    if (node.children.length > 0) {
+                        process(node.children);
+                        const visibleChildren = node.children.filter(c => c.visible).length;
+                        const totalChildren = node.children.length;
+                        const indeterminate = visibleChildren > 0 && visibleChildren < totalChildren;
+                        document.querySelectorAll(`input[data-idx="${node.idx}"]`).forEach(cb => {
+                            cb.indeterminate = indeterminate;
+                        });
+                    }
+                }
+            }
+            process(columnSchema);
+        }
+
+        function toggleDropdown() {
+            document.getElementById('columnDropdown').classList.toggle('show');
+        }
+
+        function toggleDropdownFullscreen() {
+            document.getElementById('columnDropdownFullscreen').classList.toggle('show');
+        }
+
+        function selectAllColumns() {
+            visiblePaths = new Set(getAllPaths(columnSchema));
+            updateSchemaVisibility(columnSchema);
+            renderTreeColumnSettings();
+            renderView();
+        }
+
+        function deselectAllColumns() {
+            visiblePaths = new Set();
+            updateSchemaVisibility(columnSchema);
+            renderTreeColumnSettings();
+            renderView();
+        }
+
+        function selectAllColumnsFullscreen() { selectAllColumns(); }
+        function deselectAllColumnsFullscreen() { deselectAllColumns(); }
+
+        function refreshColumns() {
+            visiblePaths = new Set(defaultPaths);
+            updateSchemaVisibility(columnSchema);
+            ensureParentVisibility(columnSchema);
+            renderTreeColumnSettings();
+            renderView();
+        }
+
+        function refreshColumnsFullscreen() { refreshColumns(); }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                document.getElementById('columnDropdown').classList.remove('show');
+                document.getElementById('columnDropdownFullscreen').classList.remove('show');
+            }
+        });
+
+        // ===== Utility Functions =====
+        function formatValue(value) {
+            if (value === null || value === undefined) return '';
+            if (typeof value === 'object') return JSON.stringify(value);
+            return String(value);
+        }
+
+        function renderPrimitive(val) {
+            if (val === null) return '<span class="primitive-value null-value">null</span>';
+            if (val === undefined) return '<span class="primitive-value null-value">undefined</span>';
+            if (typeof val === 'boolean') return `<span class="primitive-value bool-value">${val}</span>`;
+            if (typeof val === 'number') return `<span class="primitive-value number-value">${val}</span>`;
+            return `<span class="primitive-value string-value">${escapeHTML(String(val))}</span>`;
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function toggleCollapse(eventOrId, maybeId) {
+            let id;
+            if (typeof eventOrId === 'object' && eventOrId !== null) {
+                eventOrId.stopPropagation();
+                id = maybeId;
+            } else {
+                id = eventOrId;
+            }
+            const content = document.getElementById('content_' + id);
+            const icon = document.getElementById('icon_' + id);
+            if (content) {
+                const isCollapsed = content.classList.toggle('collapsed-content');
+                if (icon) {
+                    if (isCollapsed) {
+                        icon.classList.add('collapsed');
+                    } else {
+                        icon.classList.remove('collapsed');
+                    }
+                }
+                if (isCollapsed) {
+                    expandOverrides.set(id, false);
+                } else {
+                    expandOverrides.set(id, true);
+                }
+            }
+        }
+
+        function detectNested(data) {
+            if (Array.isArray(data)) {
+                return data.some(item => item !== null && typeof item === 'object' && detectNested(item));
+            }
+            if (typeof data === 'object' && data !== null) {
+                return Object.values(data).some(val => val !== null && typeof val === 'object');
+            }
+            return false;
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('inputMessage');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+        }
+
+        function clearInput() {
+            document.getElementById('jsonInput').value = '';
+            document.getElementById('defaultFields').value = '';
+            document.getElementById('tableTitle').value = '';
+            document.getElementById('inputMessage').style.display = 'none';
+            document.getElementById('dataCount').textContent = '';
+            document.getElementById('dataCountFullscreen').textContent = '';
+            updateViewToggleVisibility();
+        }
+
+        function formatJSON() {
+            const input = document.getElementById('jsonInput').value.trim();
+            if (!input) { showMessage('请输入 JSON 数据', 'error'); return; }
+            try {
+                const parsed = JSON.parse(input);
+                document.getElementById('jsonInput').value = JSON.stringify(parsed, null, 2);
+                showMessage('JSON 格式化成功', 'success');
+                setTimeout(() => { document.getElementById('inputMessage').style.display = 'none'; }, 2000);
+            } catch (error) {
+                showMessage(`格式化失败: ${error.message}`, 'error');
+            }
+        }
+
+        function compressJSON() {
+            const input = document.getElementById('jsonInput').value.trim();
+            if (!input) { showMessage('请输入 JSON 数据', 'error'); return; }
+            try {
+                const parsed = JSON.parse(input);
+                document.getElementById('jsonInput').value = JSON.stringify(parsed);
+                showMessage('JSON 压缩成功', 'success');
+                setTimeout(() => { document.getElementById('inputMessage').style.display = 'none'; }, 2000);
+            } catch (error) {
+                showMessage(`压缩失败: ${error.message}`, 'error');
+            }
+        }
+
+        // ===== Export =====
+        function exportToExcel() {
+            const leafNodes = getLeafNodes(columnSchema.filter(n => n.visible));
+            if (leafNodes.length === 0 || jsonData.length === 0) {
+                alert('没有可导出的数据');
+                return;
+            }
+
+            const exportData = jsonData.map(row => {
+                const obj = {};
+                leafNodes.forEach(node => {
+                    const val = getValueByPath(row, node.extractPath);
+                    if (node.type === 'array' || node.type === 'array-primitive') {
+                        obj[node.path] = val ? JSON.stringify(val) : '';
+                    } else {
+                        obj[node.path] = formatValue(val);
+                    }
+                });
+                return obj;
+            });
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '数据');
+
+            const colWidths = leafNodes.map(node => ({
+                wch: Math.max(node.path.length, ...exportData.map(row => String(row[node.path] || '').length))
+            }));
+            ws['!cols'] = colWidths;
+
+            const tableTitle = document.getElementById('tableHeaderTitle').textContent;
+            XLSX.writeFile(wb, `${tableTitle}.xlsx`);
+        }
+
+        // ===== Fullscreen =====
+        function toggleFullscreen() {
+            document.getElementById('fullscreenContainer').classList.add('active');
+            requestAnimationFrame(updateStickyHeaders);
+        }
+
+        function closeFullscreen() {
+            document.getElementById('fullscreenContainer').classList.remove('active');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeFullscreen();
+        });
+
+        window.addEventListener('resize', updateStickyHeaders);
+    </script>
+</body>
+</html>
